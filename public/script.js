@@ -1,17 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
-    // Substitua esta URL pela URL BASE REAL do seu Cloudflare Worker!
-    // Exemplo: 'https://pagamentos.paulo-barrozosf.workers.dev'
-    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev/'; 
+    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; // Verifique se esta URL está correta!
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Relatório Diário
-    const dateInputStart = document.getElementById('dataInicio');
-    const dateInputEnd = document.getElementById('dataFim');
+    // Relatório Detalhado (Diário)
+    const dateInputStartDiario = document.getElementById('dataInicioDiario');
+    const dateInputEndDiario = document.getElementById('dataFimDiario');
     const fetchReportButton = document.getElementById('fetchReportButton');
     const financialReportTableHead = document.querySelector('#financialReportTable thead tr');
     const financialReportTableBody = document.querySelector('#financialReportTable tbody');
@@ -19,9 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const errorDiarioDiv = document.getElementById('error-diario');
     const noDataDiarioDiv = document.getElementById('no-data-diario');
 
-    // Dashboard Mensal
-    const dashboardMesSelect = document.getElementById('dashboardMes');
-    const dashboardAnoSelect = document.getElementById('dashboardAno');
+    // Dashboard
+    const dateInputStartDashboard = document.getElementById('dataInicioDashboard');
+    const dateInputEndDashboard = document.getElementById('dataFimDashboard');
     const fetchDashboardButton = document.getElementById('fetchDashboardButton');
     const dashboardCardsContainer = document.querySelector('.dashboard-cards');
     const dailyTicketTableBody = document.querySelector('#dailyTicketTable tbody');
@@ -31,8 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const noDataDashboardDiv = document.getElementById('no-data-dashboard');
 
     // Transferências
-    const transferMesSelect = document.getElementById('transferMes');
-    const transferAnoSelect = document.getElementById('transferAno');
+    const dateInputStartTransfer = document.getElementById('dataInicioTransfer');
+    const dateInputEndTransfer = document.getElementById('dataFimTransfer');
     const fetchTransferButton = document.getElementById('fetchTransferButton');
     const transferTableBody = document.querySelector('#transferTable tbody');
     const transferPanel = document.getElementById('transfer-panel');
@@ -67,38 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    // Preenche os selects de mês e ano
-    function populateMonthYearSelects() {
-        const currentYear = new Date().getFullYear();
-        const currentMonth = new Date().getMonth() + 1; // Mês é 0-indexado
+    // Define as datas padrão (último mês até hoje) para um conjunto de inputs
+    function setInitialDates(startDateInput, endDateInput) {
+        const today = new Date();
+        const lastMonth = new Date();
+        lastMonth.setMonth(today.getMonth() - 1);
 
-        // Anos (ex: 5 anos para trás e 1 para frente)
-        for (let i = currentYear - 5; i <= currentYear + 1; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = i;
-            dashboardAnoSelect.appendChild(option.cloneNode(true));
-            transferAnoSelect.appendChild(option);
-        }
-        dashboardAnoSelect.value = currentYear;
-        transferAnoSelect.value = currentYear;
-
-        // Meses
-        const months = [
-            { value: 1, text: 'Janeiro' }, { value: 2, text: 'Fevereiro' }, { value: 3, text: 'Março' },
-            { value: 4, text: 'Abril' }, { value: 5, text: 'Maio' }, { value: 6, text: 'Junho' },
-            { value: 7, text: 'Julho' }, { value: 8, text: 'Agosto' }, { value: 9, text: 'Setembro' },
-            { value: 10, text: 'Outubro' }, { value: 11, text: 'Novembro' }, { value: 12, text: 'Dezembro' }
-        ];
-        months.forEach(month => {
-            const option = document.createElement('option');
-            option.value = month.value;
-            option.textContent = month.text;
-            dashboardMesSelect.appendChild(option.cloneNode(true));
-            transferMesSelect.appendChild(option);
-        });
-        dashboardMesSelect.value = currentMonth;
-        transferMesSelect.value = currentMonth;
+        endDateInput.valueAsDate = today;
+        startDateInput.valueAsDate = lastMonth;
     }
 
     // --- Lógica de Navegação entre Abas ---
@@ -125,21 +99,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Lógica para Relatório Diário ---
+    // --- Lógica para Relatório Detalhado (Diário) ---
     async function fetchReportData() {
         showStatusMessage('diario', 'loading');
         financialReportTableBody.innerHTML = '';
         financialReportTableHead.innerHTML = '';
 
-        const dataInicio = dateInputStart.value;
-        const dataFim = dateInputEnd.value;
+        const dataInicio = dateInputStartDiario.value;
+        const dataFim = dateInputEndDiario.value;
 
         if (!dataInicio || !dataFim) {
             showStatusMessage('diario', 'error', 'Por favor, selecione as datas de início e fim para carregar o relatório.');
             return;
         }
 
-        const apiUrl = `${WORKER_BASE_URL}pagamentos?inicio=${dataInicio}&fim=${dataFim}`;
+        const apiUrl = `${WORKER_BASE_URL}/pagamentos?inicio=${dataInicio}&fim=${dataFim}`;
 
         try {
             const response = await fetch(apiUrl);
@@ -153,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             renderFinancialReportTable(data);
 
         } catch (error) {
-            console.error('Erro ao buscar dados do relatório diário:', error);
+            console.error('Erro ao buscar dados do relatório detalhado:', error);
             showStatusMessage('diario', 'error', `Não foi possível carregar o relatório. ${error.message}`);
         } finally {
             if (loadingDiarioDiv.style.display === 'block') {
@@ -190,12 +164,14 @@ document.addEventListener('DOMContentLoaded', () => {
             { key: 'numeroDocumento', label: 'Número Documento' }
         ];
 
+        financialReportTableHead.innerHTML = ''; // Limpa cabeçalhos antigos
         columnOrder.forEach(col => {
             const th = document.createElement('th');
             th.textContent = col.label;
             financialReportTableHead.appendChild(th);
         });
 
+        financialReportTableBody.innerHTML = ''; // Limpa corpo antigo
         data.forEach(rowData => {
             const tr = document.createElement('tr');
             columnOrder.forEach(col => {
@@ -213,22 +189,22 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatusMessage('diario', 'none');
     }
 
-    // --- Lógica para Dashboard Mensal ---
+    // --- Lógica para Dashboard ---
     async function fetchDashboardData() {
         showStatusMessage('dashboard', 'loading');
         dashboardCardsContainer.innerHTML = '';
         dailyTicketTableBody.innerHTML = '';
         planTicketTableBody.innerHTML = '';
 
-        const ano = dashboardAnoSelect.value;
-        const mes = dashboardMesSelect.value;
+        const dataInicio = dateInputStartDashboard.value;
+        const dataFim = dateInputEndDashboard.value;
 
-        if (!ano || !mes) {
-            showStatusMessage('dashboard', 'error', 'Por favor, selecione o mês e ano para o dashboard.');
+        if (!dataInicio || !dataFim) {
+            showStatusMessage('dashboard', 'error', 'Por favor, selecione as datas de início e fim para o dashboard.');
             return;
         }
 
-        const apiUrl = `${WORKER_BASE_URL}dashboard-mes?ano=${ano}&mes=${mes}`;
+        const apiUrl = `${WORKER_BASE_URL}/dashboard-periodo?inicio=${dataInicio}&fim=${dataFim}`; // Novo endpoint
 
         try {
             const response = await fetch(apiUrl);
@@ -299,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${row.plano}</td>
                 <td>${row.pagamentos}</td>
                 <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
-                <td style="text-align: right;">${formatCurrency(row.ticketMedio)}</td>
+                <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
             `;
             planTicketTableBody.appendChild(tr);
         });
@@ -313,15 +289,15 @@ document.addEventListener('DOMContentLoaded', () => {
         transferTableBody.innerHTML = '';
         transferPanel.innerHTML = '';
 
-        const ano = transferAnoSelect.value;
-        const mes = transferMesSelect.value;
+        const dataInicio = dateInputStartTransfer.value;
+        const dataFim = dateInputEndTransfer.value;
 
-        if (!ano || !mes) {
-            showStatusMessage('transfer', 'error', 'Por favor, selecione o mês e ano para as transferências.');
+        if (!dataInicio || !dataFim) {
+            showStatusMessage('transfer', 'error', 'Por favor, selecione as datas de início e fim para as transferências.');
             return;
         }
 
-        const apiUrl = `${WORKER_BASE_URL}/transferencias-mes?ano=${ano}&mes=${mes}`;
+        const apiUrl = `${WORKER_BASE_URL}/transferencias-periodo?inicio=${dataInicio}&fim=${dataFim}`; // Novo endpoint
 
         try {
             const response = await fetch(apiUrl);
@@ -351,6 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Renderizar Tabela de Transferências
+        transferTableBody.innerHTML = ''; // Limpa corpo antigo
         data.transferLines.forEach(row => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -385,8 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Inicialização ---
-    populateMonthYearSelects(); // Preenche os selects de mês/ano
-    setInitialDates(); // Define as datas padrão para o relatório diário
+    // Define as datas padrão para cada seção
+    setInitialDates(dateInputStartDiario, dateInputEndDiario);
+    setInitialDates(dateInputStartDashboard, dateInputEndDashboard);
+    setInitialDates(dateInputStartTransfer, dateInputEndTransfer);
 
     // Event Listeners
     fetchReportButton.addEventListener('click', fetchReportData);
@@ -404,15 +383,5 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (targetTab === 'transferencias') {
             fetchTransferData();
         }
-    }
-
-    // Define as datas padrão (último mês até hoje) para o relatório diário
-    function setInitialDates() {
-        const today = new Date();
-        const lastMonth = new Date();
-        lastMonth.setMonth(today.getMonth() - 1);
-
-        dateInputEnd.valueAsDate = today;
-        dateInputStart.valueAsDate = lastMonth;
     }
 });
