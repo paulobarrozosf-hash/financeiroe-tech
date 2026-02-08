@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const apiUrl = `${WORKER_BASE_URL}/pagamentos?inicio=${dataInicio}&fim=${dataFim}`;
+        const apiUrl = `${WORKER_BASE_URL}pagamentos?inicio=${dataInicio}&fim=${dataFim}`;
 
         try {
             const response = await fetch(apiUrl);
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const apiUrl = `${WORKER_BASE_URL}/dashboard-mes?ano=${ano}&mes=${mes}`;
+        const apiUrl = `${WORKER_BASE_URL}dashboard-mes?ano=${ano}&mes=${mes}`;
 
         try {
             const response = await fetch(apiUrl);
