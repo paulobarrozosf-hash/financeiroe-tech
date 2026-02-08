@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
-    // ATENÇÃO: A URL BASE agora aponta para o NOVO endpoint único!
-    const WORKER_DATA_ENDPOINT = 'https://pagamentos.paulo-barrozosf.workers.dev/';
+    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; // Verifique se esta URL está correta!
+    const WORKER_DATA_ENDPOINT = `${WORKER_BASE_URL}/dados-financeiros-periodo`; // Novo endpoint único
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
@@ -66,44 +66,39 @@ document.addEventListener('DOMContentLoaded', () => {
         return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     }
 
-    // Define as datas padrão (último mês até hoje) para um conjunto de inputs
+    // Define as datas padrão (último mês até hoje) para os inputs de data
     function setInitialDates(startDateInput, endDateInput) {
         const today = new Date();
         const lastMonth = new Date();
         lastMonth.setMonth(today.getMonth() - 1);
 
-        startDateInput.valueAsDate = lastMonth;
         endDateInput.valueAsDate = today;
+        startDateInput.valueAsDate = lastMonth;
     }
 
     // --- Lógica de Navegação entre Abas ---
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
-            const targetTab = button.dataset.tab;
-
-            tabContents.forEach(content => {
-                content.style.display = 'none';
-            });
-            tabButtons.forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            document.getElementById(targetTab).style.display = 'block';
+            tabButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            // Carrega dados automaticamente ao mudar de aba, se as datas estiverem preenchidas
-            if (targetTab === 'relatorio-diario') {
-                fetchReportData();
-            } else if (targetTab === 'dashboard-mensal') {
-                fetchDashboardData();
-            } else if (targetTab === 'transferencias') {
-                fetchTransferData();
+            tabContents.forEach(content => content.style.display = 'none');
+            const targetTab = document.getElementById(button.dataset.tab);
+            if (targetTab) {
+                targetTab.style.display = 'block';
+                // Recarrega os dados da aba ativa ao clicar nela
+                if (button.dataset.tab === 'relatorio-diario') {
+                    fetchReportData();
+                } else if (button.dataset.tab === 'dashboard-mensal') {
+                    fetchDashboardData();
+                } else if (button.dataset.tab === 'transferencias') {
+                    fetchTransferData();
+                }
             }
         });
     });
 
-    // --- Funções de Busca de Dados (TODAS CHAMAM O MESMO ENDPOINT DO WORKER) ---
-
+    // --- Função Centralizada para Buscar Todos os Dados Financeiros ---
     async function fetchAllFinancialData(section, dataInicio, dataFim) {
         if (!dataInicio || !dataFim) {
             showStatusMessage(section, 'error', 'Por favor, selecione as datas de início e fim.');
@@ -111,13 +106,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         showStatusMessage(section, 'loading');
+
         try {
             const response = await fetch(`${WORKER_DATA_ENDPOINT}?inicio=${dataInicio}&fim=${dataFim}`);
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
-            }
             const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Erro desconhecido ao buscar dados.');
+            }
+
             showStatusMessage(section, 'none'); // Esconde loading/erro
             return data;
         } catch (error) {
