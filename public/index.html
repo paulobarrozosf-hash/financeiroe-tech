@@ -1,1 +1,46 @@
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Relatório Financeiro Detalhado</title>
+            <link rel="stylesheet" href="style.css">
+        </head>
+        <body>
+            <div class="container">
+                <h1>Relatório Financeiro Detalhado</h1>
 
+                <div class="controls">
+                    <label for="dataInicio">Data Início:</label>
+                    <input type="date" id="dataInicio">
+
+                    <label for="dataFim">Data Fim:</label>
+                    <input type="date" id="dataFim">
+
+                    <button id="fetchReportButton">Carregar Relatório</button>
+                </div>
+
+                <div id="status-messages">
+                    <div id="loading" class="message loading-message" style="display: none;">
+                        Carregando dados...
+                    </div>
+                    <div id="error" class="message error-message" style="display: none;"></div>
+                    <div id="no-data" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
+                </div>
+
+                <div class="table-container">
+                    <table id="financialReportTable">
+                        <thead>
+                            <tr>
+                                <!-- Cabeçalhos serão preenchidos via JS -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dados serão preenchidos via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <script src="script.js"></script>
+        </body>
+        </html>
