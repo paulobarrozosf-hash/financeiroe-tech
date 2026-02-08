@@ -1,1 +1,172 @@
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #eef2f7;
+            color: #333;
+            line-height: 1.6;
+        }
 
+        .container {
+            max-width: 1400px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 35px;
+            font-size: 2.2em;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .controls label {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .controls input[type="date"] {
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 1em;
+            color: #495057;
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+
+        .controls input[type="date"]:focus {
+            border-color: #80bdff;
+            outline: 0;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .controls button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+
+        .controls button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .controls button:active {
+            transform: translateY(0);
+        }
+
+        #status-messages {
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .message {
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .loading-message {
+            background-color: #e0f7fa;
+            color: #00796b;
+            border: 1px solid #b2ebf2;
+        }
+
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .info-message {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffcc80;
+        }
+
+        .table-container {
+            overflow-x: auto; /* Permite rolagem horizontal em telas pequenas */
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px; /* Garante que a tabela não fique muito estreita */
+        }
+
+        table th, table td {
+            border: 1px solid #e0e0e0;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        table th {
+            background-color: #007bff;
+            color: white;
+            font-weight: 600;
+            position: sticky; /* Fixa o cabeçalho ao rolar */
+            top: 0;
+            z-index: 10;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        table tbody tr:hover {
+            background-color: #e9f5ff;
+            cursor: pointer;
+        }
+
+        /* Responsividade básica */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px auto;
+            }
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 25px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .controls label {
+                text-align: center;
+            }
+            .controls input[type="date"],
+            .controls button {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        }
