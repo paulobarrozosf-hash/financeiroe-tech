@@ -12,7 +12,7 @@
             // --- Configuração da API do Cloudflare Worker ---
             // Substitua esta URL pela URL REAL do seu Cloudflare Worker!
             // Exemplo: https://relatorio-financeiro.paulo.workers.dev/pagamentos
-            const workerApiBaseUrl = 'https://pagamentos.paulo-barrozosf.workers.dev/pagamentos'; 
+            const workerApiBaseUrl = 'https://pagamentos.paulo-barrozosf.workers.dev/'; 
 
             // --- Funções de Utilidade ---
 
