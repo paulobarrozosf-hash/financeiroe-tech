@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
     // Substitua esta URL pela URL BASE REAL do seu Cloudflare Worker!
     // Exemplo: 'https://pagamentos.paulo-barrozosf.workers.dev'
-    const WORKER_BASE_URL = 'https://SEU_WORKER_URL.workers.dev'; 
+    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; 
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
