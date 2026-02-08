@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
     // ATENÇÃO: A URL BASE agora aponta para o NOVO endpoint único!
-    const WORKER_DATA_ENDPOINT = 'https://pagamentos.paulo-barrozosf.workers.dev/dados-financeiros-periodo';
+    const WORKER_DATA_ENDPOINT = 'https://pagamentos.paulo-barrozosf.workers.dev/';
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
