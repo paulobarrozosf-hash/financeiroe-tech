@@ -1,7 +1,7 @@
 // worker.js (no Cloudflare)
 
 // --- Configurações da API SGP ---
-const SGP_BASE_URL = "http://45.71.42.9:8000/api/ura/clientes/"; // Verifique se esta URL está correta e acessível do Worker
+const SGP_BASE_URL = "https://sgp.etechinformaticatelecom.com.br/api/ura/clientes/"; // Verifique se esta URL está correta e acessível do Worker
 const TZ = "America/Sao_Paulo"; // Fuso horário para formatação de datas
 
 // --- Tabelas de Configuração (replicadas do seu App Script) ---
