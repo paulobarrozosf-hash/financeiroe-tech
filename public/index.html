@@ -12,20 +12,20 @@
 
         <!-- Botões de Navegação das Abas -->
         <div class="tab-navigation">
-            <button class="tab-button active" data-tab="relatorio-diario">Relatório Diário</button>
-            <button class="tab-button" data-tab="dashboard-mensal">Dashboard Mensal</button>
+            <button class="tab-button active" data-tab="relatorio-diario">Relatório Detalhado</button>
+            <button class="tab-button" data-tab="dashboard-mensal">Dashboard</button>
             <button class="tab-button" data-tab="transferencias">Transferências</button>
         </div>
 
-        <!-- Seção do Relatório Diário -->
+        <!-- Seção do Relatório Diário (Mantém como está) -->
         <div id="relatorio-diario" class="tab-content active">
             <h2>Faturamento Detalhado por Período</h2>
             <div class="controls">
-                <label for="dataInicio">Data Início:</label>
-                <input type="date" id="dataInicio">
+                <label for="dataInicioDiario">Data Início:</label>
+                <input type="date" id="dataInicioDiario">
 
-                <label for="dataFim">Data Fim:</label>
-                <input type="date" id="dataFim">
+                <label for="dataFimDiario">Data Fim:</label>
+                <input type="date" id="dataFimDiario">
 
                 <button id="fetchReportButton">Carregar Relatório</button>
             </div>
@@ -52,14 +52,14 @@
             </div>
         </div>
 
-        <!-- Seção do Dashboard Mensal -->
+        <!-- Seção do Dashboard Mensal (Alterada para seleção de período) -->
         <div id="dashboard-mensal" class="tab-content" style="display: none;">
-            <h2>Dashboard Mensal</h2>
+            <h2>Dashboard por Período</h2>
             <div class="controls">
-                <label for="dashboardMes">Mês:</label>
-                <select id="dashboardMes"></select>
-                <label for="dashboardAno">Ano:</label>
-                <select id="dashboardAno"></select>
+                <label for="dataInicioDashboard">Data Início:</label>
+                <input type="date" id="dataInicioDashboard">
+                <label for="dataFimDashboard">Data Fim:</label>
+                <input type="date" id="dataFimDashboard">
                 <button id="fetchDashboardButton">Ver Dashboard</button>
             </div>
 
@@ -68,7 +68,7 @@
                     Carregando dashboard...
                 </div>
                 <div id="error-dashboard" class="message error-message" style="display: none;"></div>
-                <div id="no-data-dashboard" class="message info-message" style="display: none;">Nenhum dado encontrado para o mês selecionado.</div>
+                <div id="no-data-dashboard" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
             </div>
 
             <div class="dashboard-cards">
@@ -92,14 +92,14 @@
             </div>
         </div>
 
-        <!-- Seção de Transferências -->
+        <!-- Seção de Transferências (Alterada para seleção de período) -->
         <div id="transferencias" class="tab-content" style="display: none;">
-            <h2>Transferências entre Contas</h2>
+            <h2>Transferências entre Contas por Período</h2>
             <div class="controls">
-                <label for="transferMes">Mês:</label>
-                <select id="transferMes"></select>
-                <label for="transferAno">Ano:</label>
-                <select id="transferAno"></select>
+                <label for="dataInicioTransfer">Data Início:</label>
+                <input type="date" id="dataInicioTransfer">
+                <label for="dataFimTransfer">Data Fim:</label>
+                <input type="date" id="dataFimTransfer">
                 <button id="fetchTransferButton">Gerar Transferências</button>
             </div>
 
@@ -108,7 +108,7 @@
                     Gerando transferências...
                 </div>
                 <div id="error-transfer" class="message error-message" style="display: none;"></div>
-                <div id="no-data-transfer" class="message info-message" style="display: none;">Nenhum dado de transferência encontrado para o mês selecionado.</div>
+                <div id="no-data-transfer" class="message info-message" style="display: none;">Nenhum dado de transferência encontrado para o período selecionado.</div>
             </div>
 
             <div class="transfer-layout">
