@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
-    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; // Verifique se esta URL está correta!
+    // ATENÇÃO: A URL BASE agora aponta para o NOVO endpoint único!
+    const WORKER_DATA_ENDPOINT = 'https://pagamentos.paulo-barrozosf.workers.dev/dados-financeiros-periodo';
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
@@ -71,8 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastMonth = new Date();
         lastMonth.setMonth(today.getMonth() - 1);
 
-        endDateInput.valueAsDate = today;
         startDateInput.valueAsDate = lastMonth;
+        endDateInput.valueAsDate = today;
     }
 
     // --- Lógica de Navegação entre Abas ---
@@ -80,15 +81,17 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const targetTab = button.dataset.tab;
 
-            // Remove 'active' de todos os botões e conteúdos
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            tabContents.forEach(content => content.style.display = 'none');
+            tabContents.forEach(content => {
+                content.style.display = 'none';
+            });
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
 
-            // Adiciona 'active' ao botão clicado e exibe o conteúdo correspondente
-            button.classList.add('active');
             document.getElementById(targetTab).style.display = 'block';
+            button.classList.add('active');
 
-            // Carrega os dados da aba ativa (se ainda não carregados ou se precisar de refresh)
+            // Carrega dados automaticamente ao mudar de aba, se as datas estiverem preenchidas
             if (targetTab === 'relatorio-diario') {
                 fetchReportData();
             } else if (targetTab === 'dashboard-mensal') {
@@ -99,99 +102,87 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Lógica para Relatório Detalhado (Diário) ---
+    // --- Funções de Busca de Dados (TODAS CHAMAM O MESMO ENDPOINT DO WORKER) ---
+
+    async function fetchAllFinancialData(section, dataInicio, dataFim) {
+        if (!dataInicio || !dataFim) {
+            showStatusMessage(section, 'error', 'Por favor, selecione as datas de início e fim.');
+            return null;
+        }
+
+        showStatusMessage(section, 'loading');
+        try {
+            const response = await fetch(`${WORKER_DATA_ENDPOINT}?inicio=${dataInicio}&fim=${dataFim}`);
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+            }
+            const data = await response.json();
+            showStatusMessage(section, 'none'); // Esconde loading/erro
+            return data;
+        } catch (error) {
+            console.error(`Erro ao carregar dados para ${section}:`, error);
+            showStatusMessage(section, 'error', `Não foi possível carregar os dados. ${error.message}`);
+            return null;
+        }
+    }
+
+    // --- Funções Específicas para Cada Aba ---
+
     async function fetchReportData() {
-        showStatusMessage('diario', 'loading');
-        financialReportTableBody.innerHTML = '';
-        financialReportTableHead.innerHTML = '';
+        financialReportTableBody.innerHTML = ''; // Limpa a tabela
+        financialReportTableHead.innerHTML = ''; // Limpa o cabeçalho
 
         const dataInicio = dateInputStartDiario.value;
         const dataFim = dateInputEndDiario.value;
 
-        if (!dataInicio || !dataFim) {
-            showStatusMessage('diario', 'error', 'Por favor, selecione as datas de início e fim para carregar o relatório.');
-            return;
-        }
-
-        const apiUrl = `${WORKER_BASE_URL}/pagamentos?inicio=${dataInicio}&fim=${dataFim}`;
-
-        try {
-            const response = await fetch(apiUrl);
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-                throw new Error(`HTTP error! Status: ${response.status}, Detalhes: ${errorData.details || errorData.error || response.statusText}`);
-            }
-
-            const data = await response.json();
-            renderFinancialReportTable(data);
-
-        } catch (error) {
-            console.error('Erro ao buscar dados do relatório detalhado:', error);
-            showStatusMessage('diario', 'error', `Não foi possível carregar o relatório. ${error.message}`);
-        } finally {
-            if (loadingDiarioDiv.style.display === 'block') {
-                loadingDiarioDiv.style.display = 'none';
-            }
+        const allData = await fetchAllFinancialData('diario', dataInicio, dataFim);
+        if (allData && allData.pagamentosDetalhes) {
+            renderReportTable(allData.pagamentosDetalhes);
+        } else if (!allData || allData.pagamentosDetalhes.length === 0) {
+            showStatusMessage('diario', 'no-data');
         }
     }
 
-    function renderFinancialReportTable(data) {
+    function renderReportTable(data) {
         if (!data || data.length === 0) {
             showStatusMessage('diario', 'no-data');
             return;
         }
 
-        const columnOrder = [
-            { key: 'dataPagamento', label: 'Data Pagamento' },
-            { key: 'cliente', label: 'Cliente' },
-            { key: 'plano', label: 'Plano' },
-            { key: 'valorPlanoRef', label: 'Valor Plano (ref)' },
-            { key: 'valorBoleto', label: 'Valor Boleto' },
-            { key: 'valorPago', label: 'Valor Pago' },
-            { key: 'valorSCM', label: 'Valor SCM (R$)' },
-            { key: 'valorSCI', label: 'Valor SCI (R$)' },
-            { key: 'valorSVA', label: 'Valor SVA (R$)' },
-            { key: 'formaPagamento', label: 'Forma Pagamento' },
-            { key: 'portador', label: 'Portador' },
-            { key: 'contratoId', label: 'Contrato ID' },
-            { key: 'cpfcnpj', label: 'CPF/CNPJ' },
-            { key: 'endereco', label: 'Endereço' },
-            { key: 'cidade', label: 'Cidade' },
-            { key: 'uf', label: 'UF' },
-            { key: 'tituloId', label: 'Título ID' },
-            { key: 'nossoNumero', label: 'Nosso Número' },
-            { key: 'numeroDocumento', label: 'Número Documento' }
+        // Define os cabeçalhos da tabela (pode ser fixo ou dinâmico baseado nos dados)
+        const headers = [
+            "Data Pagamento", "Cliente", "CPF/CNPJ", "Plano", "Valor Plano Ref",
+            "Valor Boleto", "Valor Pago", "Portador", "Endereço", "Cidade", "UF",
+            "Valor SCM", "Valor SCI", "Valor SVA", "Forma Pagamento"
         ];
+        financialReportTableHead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
 
-        financialReportTableHead.innerHTML = ''; // Limpa cabeçalhos antigos
-        columnOrder.forEach(col => {
-            const th = document.createElement('th');
-            th.textContent = col.label;
-            financialReportTableHead.appendChild(th);
-        });
-
-        financialReportTableBody.innerHTML = ''; // Limpa corpo antigo
-        data.forEach(rowData => {
+        data.forEach(item => {
             const tr = document.createElement('tr');
-            columnOrder.forEach(col => {
-                const td = document.createElement('td');
-                if (['valorPlanoRef', 'valorBoleto', 'valorPago', 'valorSCM', 'valorSCI', 'valorSVA'].includes(col.key)) {
-                    td.textContent = formatCurrency(rowData[col.key]);
-                    td.style.textAlign = 'right';
-                } else {
-                    td.textContent = rowData[col.key];
-                }
-                tr.appendChild(td);
-            });
+            tr.innerHTML = `
+                <td>${item.dataPagamento}</td>
+                <td>${item.cliente}</td>
+                <td>${item.cpfcnpj}</td>
+                <td>${item.plano}</td>
+                <td style="text-align: right;">${formatCurrency(item.valorPlanoRef)}</td>
+                <td style="text-align: right;">${formatCurrency(item.valorBoleto)}</td>
+                <td style="text-align: right;">${formatCurrency(item.valorPago)}</td>
+                <td>${item.portador}</td>
+                <td>${item.endereco}</td>
+                <td>${item.cidade}</td>
+                <td>${item.uf}</td>
+                <td style="text-align: right;">${formatCurrency(item.valorSCM)}</td>
+                <td style="text-align: right;">${formatCurrency(item.valorSCI)}</td>
+                <td style="text-align: right;">${formatCurrency(item.valorSVA)}</td>
+                <td>${item.formaPagamento}</td>
+            `;
             financialReportTableBody.appendChild(tr);
         });
         showStatusMessage('diario', 'none');
     }
 
-    // --- Lógica para Dashboard ---
     async function fetchDashboardData() {
-        showStatusMessage('dashboard', 'loading');
         dashboardCardsContainer.innerHTML = '';
         dailyTicketTableBody.innerHTML = '';
         planTicketTableBody.innerHTML = '';
@@ -199,124 +190,78 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataInicio = dateInputStartDashboard.value;
         const dataFim = dateInputEndDashboard.value;
 
-        if (!dataInicio || !dataFim) {
-            showStatusMessage('dashboard', 'error', 'Por favor, selecione as datas de início e fim para o dashboard.');
-            return;
-        }
-
-        const apiUrl = `${WORKER_BASE_URL}/dashboard-periodo?inicio=${dataInicio}&fim=${dataFim}`; // Novo endpoint
-
-        try {
-            const response = await fetch(apiUrl);
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-                throw new Error(`HTTP error! Status: ${response.status}, Detalhes: ${errorData.details || errorData.error || response.statusText}`);
-            }
-
-            const data = await response.json();
-            renderDashboard(data);
-
-        } catch (error) {
-            console.error('Erro ao buscar dados do dashboard:', error);
-            showStatusMessage('dashboard', 'error', `Não foi possível carregar o dashboard. ${error.message}`);
-        } finally {
-            if (loadingDashboardDiv.style.display === 'block') {
-                loadingDashboardDiv.style.display = 'none';
-            }
+        const allData = await fetchAllFinancialData('dashboard', dataInicio, dataFim);
+        if (allData && allData.dashboard) {
+            renderDashboard(allData.dashboard);
+        } else if (!allData || allData.dashboard.totalPagamentos === 0) {
+            showStatusMessage('dashboard', 'no-data');
         }
     }
 
     function renderDashboard(data) {
-        if (!data || !data.summary || data.daily.length === 0) {
+        if (!data || data.summary.totalPagamentos === 0) {
             showStatusMessage('dashboard', 'no-data');
             return;
         }
 
         // Renderizar Cards de Resumo
-        const summary = data.summary;
         dashboardCardsContainer.innerHTML = `
-            <div class="dashboard-card">
-                <div class="dashboard-card-title">TOTAL RECEBIDO</div>
-                <div class="dashboard-card-value">${formatCurrency(summary.totalRecebido)}</div>
+            <div class="card">
+                <h3>Total Recebido</h3>
+                <p>${formatCurrency(data.summary.totalRecebido)}</p>
             </div>
-            <div class="dashboard-card">
-                <div class="dashboard-card-title">TOTAL PAGAMENTOS</div>
-                <div class="dashboard-card-value">${summary.totalPagamentos}</div>
+            <div class="card">
+                <h3>Total Pagamentos</h3>
+                <p>${data.summary.totalPagamentos}</p>
             </div>
-            <div class="dashboard-card">
-                <div class="dashboard-card-title">TICKET MÉDIO</div>
-                <div class="dashboard-card-value">${formatCurrency(summary.ticketGeral)}</div>
+            <div class="card">
+                <h3>Ticket Médio</h3>
+                <p>${formatCurrency(data.summary.ticketGeral)}</p>
             </div>
-            <div class="dashboard-card">
-                <div class="dashboard-card-title">REGISTROS ÚNICOS</div>
-                <div class="dashboard-card-value">${summary.registrosUnicos}</div>
+            <div class="card">
+                <h3>Registros Únicos</h3>
+                <p>${data.summary.registrosUnicos}</p>
             </div>
         `;
 
         // Renderizar Ticket Médio por Dia
-        dailyTicketTableBody.innerHTML = '';
-        data.daily.forEach(row => {
+        data.daily.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${row.dia}</td>
-                <td>${row.pagamentos}</td>
-                <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
-                <td style="text-align: right;">${formatCurrency(row.ticketMedio)}</td>
+                <td>${item.dia}</td>
+                <td>${item.pagamentos}</td>
+                <td style="text-align: right;">${formatCurrency(item.totalRecebido)}</td>
+                <td style="text-align: right;">${formatCurrency(item.ticketMedio)}</td>
             `;
             dailyTicketTableBody.appendChild(tr);
         });
 
         // Renderizar Ticket Médio por Plano
-        planTicketTableBody.innerHTML = '';
-        data.byPlan.forEach(row => {
+        data.byPlan.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${row.plano}</td>
-                <td>${row.pagamentos}</td>
-                <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
-                <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
+                <td>${item.plano}</td>
+                <td>${item.pagamentos}</td>
+                <td style="text-align: right;">${formatCurrency(item.totalRecebido)}</td>
+                <td style="text-align: right;">${formatCurrency(item.ticketMedio)}</td>
             `;
             planTicketTableBody.appendChild(tr);
         });
-
         showStatusMessage('dashboard', 'none');
     }
 
-    // --- Lógica para Transferências ---
     async function fetchTransferData() {
-        showStatusMessage('transfer', 'loading');
         transferTableBody.innerHTML = '';
         transferPanel.innerHTML = '';
 
         const dataInicio = dateInputStartTransfer.value;
         const dataFim = dateInputEndTransfer.value;
 
-        if (!dataInicio || !dataFim) {
-            showStatusMessage('transfer', 'error', 'Por favor, selecione as datas de início e fim para as transferências.');
-            return;
-        }
-
-        const apiUrl = `${WORKER_BASE_URL}/transferencias-periodo?inicio=${dataInicio}&fim=${dataFim}`; // Novo endpoint
-
-        try {
-            const response = await fetch(apiUrl);
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
-                throw new Error(`HTTP error! Status: ${response.status}, Detalhes: ${errorData.details || errorData.error || response.statusText}`);
-            }
-
-            const data = await response.json();
-            renderTransferencias(data);
-
-        } catch (error) {
-            console.error('Erro ao buscar dados de transferências:', error);
-            showStatusMessage('transfer', 'error', `Não foi possível carregar as transferências. ${error.message}`);
-        } finally {
-            if (loadingTransferDiv.style.display === 'block') {
-                loadingTransferDiv.style.display = 'none';
-            }
+        const allData = await fetchAllFinancialData('transfer', dataInicio, dataFim);
+        if (allData && allData.transferencias) {
+            renderTransferencias(allData.transferencias);
+        } else if (!allData || allData.transferencias.transferLines.length === 0) {
+            showStatusMessage('transfer', 'no-data');
         }
     }
 
@@ -327,7 +272,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Renderizar Tabela de Transferências
-        transferTableBody.innerHTML = ''; // Limpa corpo antigo
         data.transferLines.forEach(row => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -362,7 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Inicialização ---
-    // Define as datas padrão para cada seção
     setInitialDates(dateInputStartDiario, dateInputEndDiario);
     setInitialDates(dateInputStartDashboard, dateInputEndDashboard);
     setInitialDates(dateInputStartTransfer, dateInputEndTransfer);
