@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ATENÇÃO: Substitua esta URL pela URL do seu Cloudflare Worker.
     // Exemplo: "https://seu-worker.seu-usuario.workers.dev/api"
     // Ou se você configurou uma rota personalizada, como "https://pagamentos.paulo-barrozosf.workers.dev/pagamentos"
-    const WORKER_BASE_URL = "https://pagamentos.paulo-barrozosf.workers.dev"; // Ajuste conforme a URL do seu Worker
+    const WORKER_BASE_URL = "https://pagamentos.paulo-barrozosf.workers.dev/pagamentos"; // Ajuste conforme a URL do seu Worker
 
     // --- Elementos do DOM ---
     const tabButtons = document.querySelectorAll('.tab-button');
