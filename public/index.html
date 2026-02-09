@@ -12,30 +12,30 @@
 
         <!-- Botões de Navegação das Abas -->
         <div class="tab-navigation">
-            <button class="tab-button active" data-tab="relatorio-diario">Relatório Detalhado</button>
-            <button class="tab-button" data-tab="dashboard-mensal">Dashboard</button>
+            <button class="tab-button active" data-tab="relatorio-detalhado">Relatório Detalhado</button>
+            <button class="tab-button" data-tab="dashboard">Dashboard</button>
             <button class="tab-button" data-tab="transferencias">Transferências</button>
         </div>
 
-        <!-- Seção do Relatório Diário (Mantém como está) -->
-        <div id="relatorio-diario" class="tab-content active">
+        <!-- Seção do Relatório Detalhado -->
+        <div id="relatorio-detalhado" class="tab-content active">
             <h2>Faturamento Detalhado por Período</h2>
             <div class="controls">
-                <label for="dataInicioDiario">Data Início:</label>
-                <input type="date" id="dataInicioDiario">
+                <label for="dataInicioDetalhado">Data Início:</label>
+                <input type="date" id="dataInicioDetalhado">
 
-                <label for="dataFimDiario">Data Fim:</label>
-                <input type="date" id="dataFimDiario">
+                <label for="dataFimDetalhado">Data Fim:</label>
+                <input type="date" id="dataFimDetalhado">
 
                 <button id="fetchReportButton">Carregar Relatório</button>
             </div>
 
-            <div id="status-messages-diario" class="status-messages">
-                <div id="loading-diario" class="message loading-message" style="display: none;">
+            <div id="status-messages-detalhado" class="status-messages">
+                <div id="loading-detalhado" class="message loading-message" style="display: none;">
                     Carregando dados...
                 </div>
-                <div id="error-diario" class="message error-message" style="display: none;"></div>
-                <div id="no-data-diario" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
+                <div id="error-detalhado" class="message error-message" style="display: none;"></div>
+                <div id="no-data-detalhado" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
             </div>
 
             <div class="table-container">
@@ -52,8 +52,8 @@
             </div>
         </div>
 
-        <!-- Seção do Dashboard Mensal (Alterada para seleção de período) -->
-        <div id="dashboard-mensal" class="tab-content" style="display: none;">
+        <!-- Seção do Dashboard -->
+        <div id="dashboard" class="tab-content" style="display: none;">
             <h2>Dashboard por Período</h2>
             <div class="controls">
                 <label for="dataInicioDashboard">Data Início:</label>
@@ -92,7 +92,7 @@
             </div>
         </div>
 
-        <!-- Seção de Transferências (Alterada para seleção de período) -->
+        <!-- Seção de Transferências -->
         <div id="transferencias" class="tab-content" style="display: none;">
             <h2>Transferências entre Contas por Período</h2>
             <div class="controls">
@@ -100,36 +100,45 @@
                 <input type="date" id="dataInicioTransfer">
                 <label for="dataFimTransfer">Data Fim:</label>
                 <input type="date" id="dataFimTransfer">
-                <button id="fetchTransferButton">Gerar Transferências</button>
+                <button id="fetchTransferButton">Ver Transferências</button>
             </div>
 
-            <div id="status-messages-transfer" class="status-messages">
-                <div id="loading-transfer" class="message loading-message" style="display: none;">
-                    Gerando transferências...
+            <div id="status-messages-transferencias" class="status-messages">
+                <div id="loading-transferencias" class="message loading-message" style="display: none;">
+                    Carregando transferências...
                 </div>
-                <div id="error-transfer" class="message error-message" style="display: none;"></div>
-                <div id="no-data-transfer" class="message info-message" style="display: none;">Nenhum dado de transferência encontrado para o período selecionado.</div>
+                <div id="error-transferencias" class="message error-message" style="display: none;"></div>
+                <div id="no-data-transferencias" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
             </div>
 
-            <div class="transfer-layout">
-                <div class="transfer-table-container table-container">
-                    <table id="transferTable">
-                        <thead>
-                            <tr>
-                                <th>Data</th><th>Total Pagamentos</th><th>Valor Total Boleto</th><th>Total Recebido</th>
-                                <th class="scm-header">Total SCM (total)</th><th class="scm-header">SCM -> SCI (Transferir)</th><th class="scm-header">SCM -> SVA (Transferir)</th>
-                                <th class="sva-header">Total SVA (total)</th><th class="sva-header">SVA -> SCM (Transferir)</th><th class="sva-header">SVA -> SCI (Transferir)</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-                <div id="transfer-panel" class="transfer-panel">
-                    <!-- Painel de transferências diárias será preenchido via JS -->
-                </div>
+            <div class="table-container">
+                <table id="transferTable">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Total Pag.</th>
+                            <th>Valor Total Boleto</th>
+                            <th>Total Recebido</th>
+                            <th style="background-color: #0f172a; color: #f8fafc;">Total SCM</th>
+                            <th style="background-color: #0f172a; color: #f8fafc;">SCM → SCI</th>
+                            <th style="background-color: #0f172a; color: #f8fafc;">SCM → SVA</th>
+                            <th style="background-color: #0f172a; color: #f8fafc;">Total SVA</th>
+                            <th style="background-color: #0f172a; color: #f8fafc;">SVA → SCM</th>
+                            <th style="background-color: #0f172a; color: #f8fafc;">SVA → SCI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dados serão preenchidos via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="transferPanel" class="transfer-panel">
+                <!-- Painel de resumo de transferências será preenchido via JS -->
             </div>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
