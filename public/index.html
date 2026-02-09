@@ -3,138 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios Financeiros E-TECH</title>
+    <title>Relatórios Financeiros Etech</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Relatórios Financeiros E-TECH</h1>
+        <h1>Relatórios Financeiros Etech Informática</h1>
 
-        <!-- Botões de Navegação das Abas -->
         <div class="tab-navigation">
-            <button class="tab-button active" data-tab="relatorio-detalhado">Relatório Detalhado</button>
+            <button class="tab-button active" data-tab="detalhado">Faturamento Diário</button>
+            <button class="tab-button" data-tab="transferencias">Relatório de Transferências</button>
             <button class="tab-button" data-tab="dashboard">Dashboard</button>
-            <button class="tab-button" data-tab="transferencias">Transferências</button>
         </div>
 
-        <!-- Seção do Relatório Detalhado -->
-        <div id="relatorio-detalhado" class="tab-content active">
-            <h2>Faturamento Detalhado por Período</h2>
+        <div id="detalhado" class="tab-content active">
+            <h2>Faturamento Diário Detalhado</h2>
             <div class="controls">
-                <label for="dataInicioDetalhado">Data Início:</label>
-                <input type="date" id="dataInicioDetalhado">
-
-                <label for="dataFimDetalhado">Data Fim:</label>
-                <input type="date" id="dataFimDetalhado">
-
-                <button id="fetchReportButton">Carregar Relatório</button>
+                <label for="dateInputStartDetalhado">Data Início:</label>
+                <input type="date" id="dateInputStartDetalhado">
+                <label for="dateInputEndDetalhado">Data Fim:</label>
+                <input type="date" id="dateInputEndDetalhado">
+                <button id="fetchDetalhadoButton">Gerar Relatório</button>
             </div>
-
-            <div id="status-messages-detalhado" class="status-messages">
-                <div id="loading-detalhado" class="message loading-message" style="display: none;">
-                    Carregando dados...
-                </div>
-                <div id="error-detalhado" class="message error-message" style="display: none;"></div>
-                <div id="no-data-detalhado" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
+            <div class="status-messages">
+                <p id="detalhadoMessage" class="message info-message" style="display: none;"></p>
             </div>
-
             <div class="table-container">
-                <table id="financialReportTable">
+                <table id="detalhadoTable">
                     <thead>
                         <tr>
-                            <!-- Cabeçalhos serão preenchidos via JS -->
+                            <th>Data Pagamento</th>
+                            <th>Contrato ID</th>
+                            <th>Cliente</th>
+                            <th>CPF/CNPJ</th>
+                            <th>Plano</th>
+                            <th>Valor Plano Ref.</th>
+                            <th>Valor Boleto</th>
+                            <th>Valor Pago</th>
+                            <th>Portador</th>
+                            <th>Endereço</th>
+                            <th>Cidade</th>
+                            <th>UF</th>
+                            <th>Valor SCM</th>
+                            <th>Valor SCI</th>
+                            <th>Valor SVA</th>
+                            <th>Forma Pagamento</th>
+                            <th>Título ID</th>
+                            <th>Nosso Número</th>
+                            <th>Número Documento</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dados serão preenchidos via JS -->
+                        <!-- Dados serão inseridos aqui pelo JavaScript -->
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- Seção do Dashboard -->
-        <div id="dashboard" class="tab-content" style="display: none;">
-            <h2>Dashboard por Período</h2>
+        <div id="transferencias" class="tab-content">
+            <h2>Relatório de Transferências</h2>
             <div class="controls">
-                <label for="dataInicioDashboard">Data Início:</label>
-                <input type="date" id="dataInicioDashboard">
-                <label for="dataFimDashboard">Data Fim:</label>
-                <input type="date" id="dataFimDashboard">
-                <button id="fetchDashboardButton">Ver Dashboard</button>
+                <label for="dateInputStartTransferencias">Data Início:</label>
+                <input type="date" id="dateInputStartTransferencias">
+                <label for="dateInputEndTransferencias">Data Fim:</label>
+                <input type="date" id="dateInputEndTransferencias">
+                <button id="fetchTransferenciasButton">Gerar Relatório</button>
             </div>
-
-            <div id="status-messages-dashboard" class="status-messages">
-                <div id="loading-dashboard" class="message loading-message" style="display: none;">
-                    Carregando dashboard...
-                </div>
-                <div id="error-dashboard" class="message error-message" style="display: none;"></div>
-                <div id="no-data-dashboard" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
+            <div class="status-messages">
+                <p id="transferenciasMessage" class="message info-message" style="display: none;"></p>
             </div>
-
-            <div class="dashboard-cards">
-                <!-- Cards de resumo serão preenchidos via JS -->
-            </div>
-
-            <h3>Ticket Médio por Dia</h3>
-            <div class="table-container">
-                <table id="dailyTicketTable">
-                    <thead><tr><th>Dia</th><th>Pagamentos</th><th>Total Recebido</th><th>Ticket Médio</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <h3>Ticket Médio por Plano (Top 20)</h3>
-            <div class="table-container">
-                <table id="planTicketTable">
-                    <thead><tr><th>Plano</th><th>Pagamentos</th><th>Total Recebido</th><th>Ticket Médio</th></tr></thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Seção de Transferências -->
-        <div id="transferencias" class="tab-content" style="display: none;">
-            <h2>Transferências entre Contas por Período</h2>
-            <div class="controls">
-                <label for="dataInicioTransfer">Data Início:</label>
-                <input type="date" id="dataInicioTransfer">
-                <label for="dataFimTransfer">Data Fim:</label>
-                <input type="date" id="dataFimTransfer">
-                <button id="fetchTransferButton">Ver Transferências</button>
-            </div>
-
-            <div id="status-messages-transferencias" class="status-messages">
-                <div id="loading-transferencias" class="message loading-message" style="display: none;">
-                    Carregando transferências...
-                </div>
-                <div id="error-transferencias" class="message error-message" style="display: none;"></div>
-                <div id="no-data-transferencias" class="message info-message" style="display: none;">Nenhum dado encontrado para o período selecionado.</div>
-            </div>
-
             <div class="table-container">
                 <table id="transferTable">
                     <thead>
                         <tr>
                             <th>Data</th>
-                            <th>Total Pag.</th>
-                            <th>Valor Total Boleto</th>
                             <th>Total Recebido</th>
-                            <th style="background-color: #0f172a; color: #f8fafc;">Total SCM</th>
-                            <th style="background-color: #0f172a; color: #f8fafc;">SCM → SCI</th>
-                            <th style="background-color: #0f172a; color: #f8fafc;">SCM → SVA</th>
-                            <th style="background-color: #0f172a; color: #f8fafc;">Total SVA</th>
-                            <th style="background-color: #0f172a; color: #f8fafc;">SVA → SCM</th>
-                            <th style="background-color: #0f172a; color: #f8fafc;">SVA → SCI</th>
+                            <th>Total SCM</th>
+                            <th>Total SCI</th>
+                            <th>Total SVA</th>
+                            <th>SCM (%)</th>
+                            <th>SCI (%)</th>
+                            <th>SVA (%)</th>
+                            <th>Total SCM (R$)</th>
+                            <th>Total SCI (R$)</th>
+                            <th>Total SVA (R$)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <!-- Dados serão preenchidos via JS -->
+                        <!-- Dados serão inseridos aqui pelo JavaScript -->
                     </tbody>
                 </table>
             </div>
+            <div class="transfer-panel" id="transferPanel">
+                <h3 class="transfer-panel-title">Resumo de Transferências</h3>
+                <!-- Resumo de transferências será inserido aqui pelo JavaScript -->
+            </div>
+        </div>
 
-            <div id="transferPanel" class="transfer-panel">
-                <!-- Painel de resumo de transferências será preenchido via JS -->
+        <div id="dashboard" class="tab-content">
+            <h2>Dashboard Financeiro</h2>
+            <div class="controls">
+                <label for="dateInputStartDashboard">Data Início:</label>
+                <input type="date" id="dateInputStartDashboard">
+                <label for="dateInputEndDashboard">Data Fim:</label>
+                <input type="date" id="dateInputEndDashboard">
+                <button id="fetchDashboardButton">Gerar Dashboard</button>
+            </div>
+            <div class="status-messages">
+                <p id="dashboardMessage" class="message info-message" style="display: none;"></p>
+            </div>
+            <div class="dashboard-cards" id="summaryCards">
+                <!-- Cards de resumo serão inseridos aqui pelo JavaScript -->
+            </div>
+            <h3>Faturamento Diário</h3>
+            <div class="table-container">
+                <table id="dashboardDailyTable">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Total Recebido</th>
+                            <th>Total Pagamentos</th>
+                            <th>Ticket Médio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dados serão inseridos aqui pelo JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            <h3>Faturamento por Plano (Top 20)</h3>
+            <div class="table-container">
+                <table id="dashboardPlanTable">
+                    <thead>
+                        <tr>
+                            <th>Plano</th>
+                            <th>Pagamentos</th>
+                            <th>Total Recebido</th>
+                            <th>Ticket Médio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dados serão inseridos aqui pelo JavaScript -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
