@@ -1,82 +1,83 @@
-// script.js - Código para o Frontend
-
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Configuração da API do Cloudflare Worker ---
-    // Substitua esta URL pela URL BASE REAL do seu Cloudflare Worker!
-    // Exemplo: 'https://pagamentos.paulo-barrozosf.workers.dev'
-    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; 
-    const WORKER_DATA_ENDPOINT = `${WORKER_BASE_URL}/dados-financeiros-periodo`;
+    // --- Configurações ---
+    // ATENÇÃO: Substitua esta URL pela URL do seu Cloudflare Worker.
+    // Exemplo: "https://seu-worker.seu-usuario.workers.dev/api"
+    // Ou se você configurou uma rota personalizada, como "https://pagamentos.paulo-barrozosf.workers.dev/pagamentos"
+    const WORKER_BASE_URL = "https://pagamentos.paulo-barrozosf.workers.dev"; // Ajuste conforme a URL do seu Worker
 
-    // --- Seletores de Elementos do DOM ---
-    // Navegação
+    // --- Elementos do DOM ---
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Relatório Detalhado
-    const dateInputStartDetalhado = document.getElementById('dataInicioDetalhado');
-    const dateInputEndDetalhado = document.getElementById('dataFimDetalhado');
-    const fetchReportButton = document.getElementById('fetchReportButton');
-    const financialReportTableHead = document.querySelector('#financialReportTable thead tr');
-    const financialReportTableBody = document.querySelector('#financialReportTable tbody');
-    const loadingDetalhadoDiv = document.getElementById('loading-detalhado');
-    const errorDetalhadoDiv = document.getElementById('error-detalhado');
-    const noDataDetalhadoDiv = document.getElementById('no-data-detalhado');
-
-    // Dashboard
-    const dateInputStartDashboard = document.getElementById('dataInicioDashboard');
-    const dateInputEndDashboard = document.getElementById('dataFimDashboard');
-    const fetchDashboardButton = document.getElementById('fetchDashboardButton');
-    const dashboardCardsContainer = document.querySelector('.dashboard-cards');
-    const dailyTicketTableBody = document.querySelector('#dailyTicketTable tbody');
-    const planTicketTableBody = document.querySelector('#planTicketTable tbody');
-    const loadingDashboardDiv = document.getElementById('loading-dashboard');
-    const errorDashboardDiv = document.getElementById('error-dashboard');
-    const noDataDashboardDiv = document.getElementById('no-data-dashboard');
+    // Detalhado
+    const dateInputStartDetalhado = document.getElementById('dateInputStartDetalhado');
+    const dateInputEndDetalhado = document.getElementById('dateInputEndDetalhado');
+    const fetchDetalhadoButton = document.getElementById('fetchDetalhadoButton');
+    const detalhadoTableBody = document.querySelector('#detalhadoTable tbody');
+    const detalhadoMessage = document.getElementById('detalhadoMessage');
 
     // Transferências
-    const dateInputStartTransfer = document.getElementById('dataInicioTransfer');
-    const dateInputEndTransfer = document.getElementById('dataFimTransfer');
-    const fetchTransferButton = document.getElementById('fetchTransferButton');
+    const dateInputStartTransferencias = document.getElementById('dateInputStartTransferencias');
+    const dateInputEndTransferencias = document.getElementById('dateInputEndTransferencias');
+    const fetchTransferenciasButton = document.getElementById('fetchTransferenciasButton');
     const transferTableBody = document.querySelector('#transferTable tbody');
     const transferPanel = document.getElementById('transferPanel');
-    const loadingTransferenciasDiv = document.getElementById('loading-transferencias');
-    const errorTransferenciasDiv = document.getElementById('error-transferencias');
-    const noDataTransferenciasDiv = document.getElementById('no-data-transferencias');
+    const transferenciasMessage = document.getElementById('transferenciasMessage');
+
+    // Dashboard
+    const dateInputStartDashboard = document.getElementById('dateInputStartDashboard');
+    const dateInputEndDashboard = document.getElementById('dateInputEndDashboard');
+    const fetchDashboardButton = document.getElementById('fetchDashboardButton');
+    const summaryCardsContainer = document.getElementById('summaryCards');
+    const dashboardDailyTableBody = document.querySelector('#dashboardDailyTable tbody');
+    const dashboardPlanTableBody = document.querySelector('#dashboardPlanTable tbody');
+    const dashboardMessage = document.getElementById('dashboardMessage');
 
     // --- Funções Auxiliares ---
+    function showMessage(element, msg, type = 'info') {
+        element.textContent = msg;
+        element.className = `message ${type}-message`;
+        element.style.display = 'block';
+    }
+
+    function hideMessage(element) {
+        element.style.display = 'none';
+    }
+
+    function clearTable(tableBody) {
+        tableBody.innerHTML = '';
+    }
+
+    function formatDate(date) {
+        const d = new Date(date);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
     function formatCurrency(value) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     }
 
-    function showStatusMessage(tabPrefix, type, message = '') {
-        const loadingDiv = document.getElementById(`loading-${tabPrefix}`);
-        const errorDiv = document.getElementById(`error-${tabPrefix}`);
-        const noDataDiv = document.getElementById(`no-data-${tabPrefix}`);
-
-        loadingDiv.style.display = 'none';
-        errorDiv.style.display = 'none';
-        noDataDiv.style.display = 'none';
-
-        if (type === 'loading') {
-            loadingDiv.style.display = 'block';
-        } else if (type === 'error') {
-            errorDiv.textContent = `Erro: ${message}`;
-            errorDiv.style.display = 'block';
-        } else if (type === 'no-data') {
-            noDataDiv.style.display = 'block';
-        }
-    }
-
-    function setInitialDates(startDateInput, endDateInput) {
+    // Define as datas padrão para o mês atual
+    function setDefaultDates() {
         const today = new Date();
         const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
-        endDateInput.valueAsDate = today;
-        startDateInput.valueAsDate = firstDayOfMonth;
+        const formattedFirstDay = formatDate(firstDayOfMonth);
+        const formattedLastDay = formatDate(lastDayOfMonth);
+
+        dateInputStartDetalhado.value = formattedFirstDay;
+        dateInputEndDetalhado.value = formattedLastDay;
+        dateInputStartTransferencias.value = formattedFirstDay;
+        dateInputEndTransferencias.value = formattedLastDay;
+        dateInputStartDashboard.value = formattedFirstDay;
+        dateInputEndDashboard.value = formattedLastDay;
     }
 
-    // --- Lógica de Navegação das Abas ---
+    // --- Lógica de Abas ---
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
             const targetTab = button.dataset.tab;
@@ -86,254 +87,221 @@ document.addEventListener('DOMContentLoaded', () => {
 
             tabContents.forEach(content => {
                 if (content.id === targetTab) {
-                    content.style.display = 'block';
+                    content.classList.add('active');
                 } else {
-                    content.style.display = 'none';
+                    content.classList.remove('active');
                 }
             });
 
             // Carrega os dados da aba ativa automaticamente
-            if (targetTab === 'relatorio-detalhado') {
+            if (targetTab === 'detalhado') {
                 fetchReportData();
-            } else if (targetTab === 'dashboard') {
-                fetchDashboardData();
             } else if (targetTab === 'transferencias') {
                 fetchTransferData();
+            } else if (targetTab === 'dashboard') {
+                fetchDashboardData();
             }
         });
     });
 
-    // --- Função Centralizada para Buscar Dados do Worker ---
-    async function fetchAllFinancialData(tabPrefix, dataInicio, dataFim) {
-        showStatusMessage(tabPrefix, 'loading');
-
-        if (!dataInicio || !dataFim) {
-            showStatusMessage(tabPrefix, 'error', 'Por favor, selecione as datas de início e fim.');
-            return null;
+    // --- Funções de Fetch de Dados ---
+    async function fetchAllFinancialData(reportType, dataInicio, dataFim) {
+        let endpoint = '';
+        if (reportType === 'detalhado') {
+            endpoint = '/api/daily-billing';
+        } else if (reportType === 'dashboard') {
+            endpoint = '/api/dashboard';
+        } else if (reportType === 'transferencias') {
+            endpoint = '/api/transfers';
+        } else {
+            throw new Error('Tipo de relatório desconhecido.');
         }
 
-        try {
-            const url = new URL(WORKER_DATA_ENDPOINT);
-            url.searchParams.append('data_inicio', dataInicio);
-            url.searchParams.append('data_fim', dataFim);
+        const url = `${WORKER_BASE_URL}${endpoint}?dataInicio=${dataInicio}&dataFim=${dataFim}`;
+        console.log(`Fetching from: ${url}`); // Para depuração
 
-            const response = await fetch(url.toString());
+        const messageElement = reportType === 'detalhado' ? detalhadoMessage :
+                               reportType === 'transferencias' ? transferenciasMessage :
+                               dashboardMessage;
+
+        showMessage(messageElement, 'Carregando dados...', 'loading');
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
 
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.details || `Erro HTTP: ${response.status}`);
+                throw new Error(data.message || `Erro HTTP: ${response.status}`);
             }
 
-            const data = await response.json();
-            showStatusMessage(tabPrefix, 'none'); // Esconde mensagens de status
+            hideMessage(messageElement);
             return data;
-
         } catch (error) {
-            console.error(`Erro ao carregar dados para ${tabPrefix}:`, error);
-            showStatusMessage(tabPrefix, 'error', error.message);
+            console.error(`Erro ao buscar dados para ${reportType}:`, error);
+            showMessage(messageElement, `Erro: ${error.message}`, 'error');
             return null;
         }
     }
 
-    // --- Funções para Renderizar Dados em Cada Aba ---
+    // --- Renderização de Relatórios ---
 
+    // Faturamento Diário Detalhado
     async function fetchReportData() {
-        financialReportTableHead.innerHTML = '';
-        financialReportTableBody.innerHTML = '';
-
         const dataInicio = dateInputStartDetalhado.value;
         const dataFim = dateInputEndDetalhado.value;
 
-        const allData = await fetchAllFinancialData('detalhado', dataInicio, dataFim);
-        if (allData && allData.pagamentosDetalhes) {
-            renderDetalhado(allData.pagamentosDetalhes);
-        } else if (!allData || allData.pagamentosDetalhes.length === 0) {
-            showStatusMessage('detalhado', 'no-data');
-        }
-    }
-
-    function renderDetalhado(data) {
-        if (!data || data.length === 0) {
-            showStatusMessage('detalhado', 'no-data');
+        if (!dataInicio || !dataFim) {
+            showMessage(detalhadoMessage, 'Por favor, selecione as datas de início e fim.', 'error');
             return;
         }
 
-        // Cabeçalhos da tabela (ajustados para os campos do Worker)
-        const headers = [
-            "Data Pagamento", "Cliente", "Contrato ID", "Plano", "Portador",
-            "Forma Pagamento", "Valor Boleto", "Valor Pago",
-            "Valor SCM (R$)", "Valor SCI (R$)", "Valor SVA (R$)",
-            "Título", "Chave Única"
-        ];
-        financialReportTableHead.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
+        clearTable(detalhadoTableBody);
+        const result = await fetchAllFinancialData('detalhado', dataInicio, dataFim);
 
-        // Preencher corpo da tabela
-        data.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.dataPagamento}</td>
-                <td>${item.cliente}</td>
-                <td>${item.contratoID}</td>
-                <td>${item.plano}</td>
-                <td>${item.portador}</td>
-                <td>${item.formaPagamento}</td>
-                <td style="text-align: right;">${formatCurrency(item.valorBoleto)}</td>
-                <td style="text-align: right;">${formatCurrency(item.valorPago)}</td>
-                <td style="text-align: right;">${formatCurrency(item.valorSCM)}</td>
-                <td style="text-align: right;">${formatCurrency(item.valorSCI)}</td>
-                <td style="text-align: right;">${formatCurrency(item.valorSVA)}</td>
-                <td>${item.titulo}</td>
-                <td>${item.chaveUnica}</td>
-            `;
-            financialReportTableBody.appendChild(tr);
-        });
-        showStatusMessage('detalhado', 'none');
+        if (result && result.detalhado && result.detalhado.reportLines) {
+            result.detalhado.reportLines.forEach(item => {
+                const row = detalhadoTableBody.insertRow();
+                row.insertCell().textContent = item.dataPagamento;
+                row.insertCell().textContent = item.contratoId;
+                row.insertCell().textContent = item.cliente;
+                row.insertCell().textContent = item.cpfcnpj;
+                row.insertCell().textContent = item.plano;
+                row.insertCell().textContent = formatCurrency(item.valorPlanoRef);
+                row.insertCell().textContent = formatCurrency(item.valorBoleto);
+                row.insertCell().textContent = formatCurrency(item.valorPago);
+                row.insertCell().textContent = item.portador;
+                row.insertCell().textContent = item.endereco;
+                row.insertCell().textContent = item.cidade;
+                row.insertCell().textContent = item.uf;
+                row.insertCell().textContent = formatCurrency(item.valorSCM);
+                row.insertCell().textContent = formatCurrency(item.valorSCI);
+                row.insertCell().textContent = formatCurrency(item.valorSVA);
+                row.insertCell().textContent = item.formaPagamento;
+                row.insertCell().textContent = item.tituloId;
+                row.insertCell().textContent = item.nossoNumero;
+                row.insertCell().textContent = item.numeroDocumento;
+            });
+            showMessage(detalhadoMessage, `Relatório de Faturamento Diário gerado para o período de ${dataInicio} a ${dataFim}. Total de ${result.detalhado.reportLines.length} registros.`, 'info');
+        } else if (result) {
+             showMessage(detalhadoMessage, 'Nenhum dado encontrado para o período selecionado.', 'info');
+        }
     }
 
-    async function fetchDashboardData() {
-        dashboardCardsContainer.innerHTML = '';
-        dailyTicketTableBody.innerHTML = '';
-        planTicketTableBody.innerHTML = '';
+    // Relatório de Transferências
+    async function fetchTransferData() {
+        const dataInicio = dateInputStartTransferencias.value;
+        const dataFim = dateInputEndTransferencias.value;
 
+        if (!dataInicio || !dataFim) {
+            showMessage(transferenciasMessage, 'Por favor, selecione as datas de início e fim.', 'error');
+            return;
+        }
+
+        clearTable(transferTableBody);
+        transferPanel.innerHTML = '<h3 class="transfer-panel-title">Resumo de Transferências</h3>'; // Limpa o painel
+        const result = await fetchAllFinancialData('transferencias', dataInicio, dataFim);
+
+        if (result && result.transferencias) {
+            // Preenche a tabela
+            if (result.transferencias.transferLines && result.transferencias.transferLines.length > 0) {
+                result.transferencias.transferLines.forEach(item => {
+                    const row = transferTableBody.insertRow();
+                    row.insertCell().textContent = item.data;
+                    row.insertCell().textContent = formatCurrency(item.totalRecebido);
+                    row.insertCell().textContent = formatCurrency(item.totalSCM);
+                    row.insertCell().textContent = formatCurrency(item.totalSCI);
+                    row.insertCell().textContent = formatCurrency(item.totalSVA);
+                    row.insertCell().textContent = `${(item.percentSCM * 100).toFixed(2)}%`;
+                    row.insertCell().textContent = `${(item.percentSCI * 100).toFixed(2)}%`;
+                    row.insertCell().textContent = `${(item.percentSVA * 100).toFixed(2)}%`;
+                    row.insertCell().textContent = formatCurrency(item.valorSCM);
+                    row.insertCell().textContent = formatCurrency(item.valorSCI);
+                    row.insertCell().textContent = formatCurrency(item.valorSVA);
+                });
+            } else {
+                showMessage(transferenciasMessage, 'Nenhum dado de transferência encontrado para o período selecionado.', 'info');
+            }
+
+            // Preenche o painel de resumo
+            if (result.transferencias.transferPanelLines && result.transferencias.transferPanelLines.length > 0) {
+                result.transferencias.transferPanelLines.forEach(item => {
+                    const panelItem = document.createElement('div');
+                    panelItem.className = 'transfer-panel-item';
+                    panelItem.innerHTML = `
+                        <div class="transfer-panel-date">${item.data}</div>
+                        <div class="transfer-panel-scm">SCM: ${formatCurrency(item.totalSCM)} (${(item.percentSCM * 100).toFixed(2)}%)</div>
+                        <div class="transfer-panel-sva">SVA: ${formatCurrency(item.totalSVA)} (${(item.percentSVA * 100).toFixed(2)}%)</div>
+                    `;
+                    transferPanel.appendChild(panelItem);
+                });
+            }
+            showMessage(transferenciasMessage, `Relatório de Transferências gerado para o período de ${dataInicio} a ${dataFim}.`, 'info');
+        } else if (result) {
+            showMessage(transferenciasMessage, 'Nenhum dado encontrado para o período selecionado.', 'info');
+        }
+    }
+
+    // Dashboard
+    async function fetchDashboardData() {
         const dataInicio = dateInputStartDashboard.value;
         const dataFim = dateInputEndDashboard.value;
 
-        const allData = await fetchAllFinancialData('dashboard', dataInicio, dataFim);
-        if (allData && allData.dashboard) {
-            renderDashboard(allData.dashboard);
-        } else if (!allData || allData.dashboard.daily.length === 0) { // Verifica se há dados diários
-            showStatusMessage('dashboard', 'no-data');
-        }
-    }
-
-    function renderDashboard(data) {
-        if (!data || data.daily.length === 0) {
-            showStatusMessage('dashboard', 'no-data');
+        if (!dataInicio || !dataFim) {
+            showMessage(dashboardMessage, 'Por favor, selecione as datas de início e fim.', 'error');
             return;
         }
 
-        // Renderizar Cards de Resumo
-        dashboardCardsContainer.innerHTML = `
-            <div class="card">
-                <h3>Total Recebido</h3>
-                <p>${formatCurrency(data.summary.totalRecebido)}</p>
-            </div>
-            <div class="card">
-                <h3>Total Pagamentos</h3>
-                <p>${data.summary.totalPagamentos}</p>
-            </div>
-            <div class="card">
-                <h3>Ticket Médio</h3>
-                <p>${formatCurrency(data.summary.ticketGeral)}</p>
-            </div>
-            <div class="card">
-                <h3>Registros Únicos</h3>
-                <p>${data.summary.registrosUnicos}</p>
-            </div>
-        `;
+        summaryCardsContainer.innerHTML = ''; // Limpa os cards
+        clearTable(dashboardDailyTableBody);
+        clearTable(dashboardPlanTableBody);
 
-        // Renderizar Ticket Médio por Dia
-        data.daily.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.dia}</td>
-                <td>${item.pagamentos}</td>
-                <td style="text-align: right;">${formatCurrency(item.totalRecebido)}</td>
-                <td style="text-align: right;">${formatCurrency(item.ticketMedio)}</td>
-            `;
-            dailyTicketTableBody.appendChild(tr);
-        });
+        const result = await fetchAllFinancialData('dashboard', dataInicio, dataFim);
 
-        // Renderizar Ticket Médio por Plano
-        data.byPlan.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.plano}</td>
-                <td>${item.pagamentos}</td>
-                <td style="text-align: right;">${formatCurrency(item.totalRecebido)}</td>
-                <td style="text-align: right;">${formatCurrency(item.ticketMedio)}</td>
-            `;
-            planTicketTableBody.appendChild(tr);
-        });
-        showStatusMessage('dashboard', 'none');
-    }
+        if (result && result.dashboard) {
+            // Preenche os cards de resumo
+            if (result.dashboard.summaryCards && result.dashboard.summaryCards.length > 0) {
+                result.dashboard.summaryCards.forEach(cardData => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `<h3>${cardData.title}</h3><p>${cardData.value}</p>`;
+                    summaryCardsContainer.appendChild(card);
+                });
+            }
 
-    async function fetchTransferData() {
-        transferTableBody.innerHTML = '';
-        transferPanel.innerHTML = '';
+            // Preenche a tabela de faturamento diário
+            if (result.dashboard.dailySummary && result.dashboard.dailySummary.length > 0) {
+                result.dashboard.dailySummary.forEach(item => {
+                    const row = dashboardDailyTableBody.insertRow();
+                    row.insertCell().textContent = item.data;
+                    row.insertCell().textContent = formatCurrency(item.totalRecebido);
+                    row.insertCell().textContent = item.totalPagamentos;
+                    row.insertCell().textContent = formatCurrency(item.ticketMedio);
+                });
+            }
 
-        const dataInicio = dateInputStartTransfer.value;
-        const dataFim = dateInputEndTransfer.value;
-
-        const allData = await fetchAllFinancialData('transferencias', dataInicio, dataFim);
-        if (allData && allData.transferencias) {
-            renderTransferencias(allData.transferencias);
-        } else if (!allData || allData.transferencias.transferLines.length === 0) {
-            showStatusMessage('transferencias', 'no-data');
+            // Preenche a tabela de faturamento por plano
+            if (result.dashboard.planSummary && result.dashboard.planSummary.length > 0) {
+                result.dashboard.planSummary.forEach(item => {
+                    const row = dashboardPlanTableBody.insertRow();
+                    row.insertCell().textContent = item.plano;
+                    row.insertCell().textContent = item.pagamentos;
+                    row.insertCell().textContent = formatCurrency(item.totalRecebido);
+                    row.insertCell().textContent = formatCurrency(item.ticketMedio);
+                });
+            }
+            showMessage(dashboardMessage, `Dashboard gerado para o período de ${dataInicio} a ${dataFim}.`, 'info');
+        } else if (result) {
+            showMessage(dashboardMessage, 'Nenhum dado encontrado para o período selecionado.', 'info');
         }
     }
 
-    function renderTransferencias(data) {
-        if (!data || data.transferLines.length === 0) {
-            showStatusMessage('transferencias', 'no-data');
-            return;
-        }
-
-        // Renderizar Tabela de Transferências
-        data.transferLines.forEach(row => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${row.data}</td>
-                <td>${row.totalPagamentos}</td>
-                <td style="text-align: right;">${formatCurrency(row.valorTotalBoleto)}</td>
-                <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
-                <td style="text-align: right;">${formatCurrency(row.totalSCM_Total)}</td>
-                <td style="text-align: right;">${formatCurrency(row.scmToSci)}</td>
-                <td style="text-align: right;">${formatCurrency(row.scmToSva)}</td>
-                <td style="text-align: right;">${formatCurrency(row.totalSVA_Total)}</td>
-                <td style="text-align: right;">${formatCurrency(row.svaToScm)}</td>
-                <td style="text-align: right;">${formatCurrency(row.svaToSci)}</td>
-            `;
-            transferTableBody.appendChild(tr);
-        });
-
-        // Renderizar Painel de Transferências
-        transferPanel.innerHTML = '<div class="transfer-panel-title">✅ O QUE TRANSFERIR POR DIA</div>'; // Título do painel
-        data.transferPanelLines.forEach(item => {
-            const panelItem = document.createElement('div');
-            panelItem.classList.add('transfer-panel-item');
-            panelItem.innerHTML = `
-                <div class="transfer-panel-date">📅 ${item.dataTxt} • Recebido: ${formatCurrency(item.totalRecebido)}</div>
-                <div class="transfer-panel-scm">SCM → SCI: ${formatCurrency(item.scmToSci)} | SCM → SVA: ${formatCurrency(item.scmToSva)}</div>
-                <div class="transfer-panel-sva">SVA → SCM: ${formatCurrency(item.svaToScm)} | SVA → SCI: ${formatCurrency(item.svaToSci)}</div>
-            `;
-            transferPanel.appendChild(panelItem);
-        });
-
-        showStatusMessage('transferencias', 'none');
-    }
-
-    // --- Inicialização ---
-    // Define as datas iniciais para todos os inputs de data
-    setInitialDates(dateInputStartDetalhado, dateInputEndDetalhado);
-    setInitialDates(dateInputStartDashboard, dateInputEndDashboard);
-    setInitialDates(dateInputStartTransfer, dateInputEndTransfer);
-
-    // Event Listeners para os botões de carregar
-    fetchReportButton.addEventListener('click', fetchReportData);
+    // --- Event Listeners ---
+    fetchDetalhadoButton.addEventListener('click', fetchReportData);
+    fetchTransferenciasButton.addEventListener('click', fetchTransferData);
     fetchDashboardButton.addEventListener('click', fetchDashboardData);
-    fetchTransferButton.addEventListener('click', fetchTransferData);
 
-    // Carrega os dados da primeira aba ativa ao iniciar
-    const initialTab = document.querySelector('.tab-button.active');
-    if (initialTab) {
-        const targetTab = initialTab.dataset.tab;
-        if (targetTab === 'relatorio-detalhado') {
-            fetchReportData();
-        } else if (targetTab === 'dashboard') {
-            fetchDashboardData();
-        } else if (targetTab === 'transferencias') {
-            fetchTransferData();
-        }
-    }
+    // Inicialização
+    setDefaultDates();
+    // Carrega o relatório detalhado ao iniciar a página
+    fetchReportData();
 });
