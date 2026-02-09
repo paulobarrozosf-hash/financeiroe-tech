@@ -1,14 +1,18 @@
+// public/script.js (Código completo e corrigido para o Frontend)
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
-    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; // Verifique se esta URL está correta!
-    const WORKER_DATA_ENDPOINT = `${WORKER_BASE_URL}/dados-financeiros-periodo`; // Novo endpoint único
+    // Substitua esta URL pela URL BASE REAL do seu Cloudflare Worker!
+    // Exemplo: 'https://pagamentos.paulo-barrozosf.workers.dev'
+    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev/';
+    const WORKER_DATA_ENDPOINT = WORKER_BASE_URL + 'dados-financeiros-periodo'; // Novo endpoint único
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // Relatório Detalhado (Diário)
+    // Relatório Detalhado
     const dateInputStartDiario = document.getElementById('dataInicioDiario');
     const dateInputEndDiario = document.getElementById('dataFimDiario');
     const fetchReportButton = document.getElementById('fetchReportButton');
@@ -34,101 +38,110 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInputEndTransfer = document.getElementById('dataFimTransfer');
     const fetchTransferButton = document.getElementById('fetchTransferButton');
     const transferTableBody = document.querySelector('#transferTable tbody');
-    const transferPanel = document.getElementById('transfer-panel');
+    const transferPanel = document.querySelector('.transfer-panel');
     const loadingTransferDiv = document.getElementById('loading-transfer');
     const errorTransferDiv = document.getElementById('error-transfer');
     const noDataTransferDiv = document.getElementById('no-data-transfer');
 
-    // --- Funções de Utilidade ---
+    // --- Funções Auxiliares ---
+    function formatCurrency(value) {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    }
 
-    // Exibe uma mensagem de status e esconde as outras para uma seção específica
-    function showStatusMessage(section, type, message = '') {
-        const loadingDiv = document.getElementById(`loading-${section}`);
-        const errorDiv = document.getElementById(`error-${section}`);
-        const noDataDiv = document.getElementById(`no-data-${section}`);
+    function showStatusMessage(tab, type, message = '') {
+        const loadingDiv = document.getElementById(`loading-${tab}`);
+        const errorDiv = document.getElementById(`error-${tab}`);
+        const noDataDiv = document.getElementById(`no-data-${tab}`);
 
-        loadingDiv.style.display = 'none';
-        errorDiv.style.display = 'none';
-        noDataDiv.style.display = 'none';
+        // Esconde todas as mensagens primeiro
+        if (loadingDiv) loadingDiv.style.display = 'none';
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (noDataDiv) noDataDiv.style.display = 'none';
 
-        if (type === 'loading') {
+        // Mostra a mensagem específica
+        if (type === 'loading' && loadingDiv) {
             loadingDiv.style.display = 'block';
-        } else if (type === 'error') {
+        } else if (type === 'error' && errorDiv) {
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
-        } else if (type === 'no-data') {
+        } else if (type === 'no-data' && noDataDiv) {
             noDataDiv.style.display = 'block';
         }
     }
 
-    // Formata um número para moeda BRL
-    function formatCurrency(value) {
-        return Number(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    }
-
-    // Define as datas padrão (último mês até hoje) para os inputs de data
     function setInitialDates(startDateInput, endDateInput) {
         const today = new Date();
-        const lastMonth = new Date();
-        lastMonth.setMonth(today.getMonth() - 1);
+        const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
         endDateInput.valueAsDate = today;
-        startDateInput.valueAsDate = lastMonth;
+        startDateInput.valueAsDate = firstDayOfCurrentMonth;
     }
 
-    // --- Lógica de Navegação entre Abas ---
+    // --- Navegação entre Abas ---
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
+            const targetTab = button.dataset.tab;
+
             tabButtons.forEach(btn => btn.classList.remove('active'));
             button.classList.add('active');
 
-            tabContents.forEach(content => content.style.display = 'none');
-            const targetTab = document.getElementById(button.dataset.tab);
-            if (targetTab) {
-                targetTab.style.display = 'block';
-                // Recarrega os dados da aba ativa ao clicar nela
-                if (button.dataset.tab === 'relatorio-diario') {
-                    fetchReportData();
-                } else if (button.dataset.tab === 'dashboard-mensal') {
-                    fetchDashboardData();
-                } else if (button.dataset.tab === 'transferencias') {
-                    fetchTransferData();
+            tabContents.forEach(content => {
+                if (content.id === targetTab) {
+                    content.style.display = 'block';
+                } else {
+                    content.style.display = 'none';
                 }
+            });
+
+            // Dispara o fetch de dados para a aba ativa
+            if (targetTab === 'relatorio-diario') {
+                fetchReportData();
+            } else if (targetTab === 'dashboard-mensal') {
+                fetchDashboardData();
+            } else if (targetTab === 'transferencias') {
+                fetchTransferData();
             }
         });
     });
 
     // --- Função Centralizada para Buscar Todos os Dados Financeiros ---
-    async function fetchAllFinancialData(section, dataInicio, dataFim) {
-        if (!dataInicio || !dataFim) {
-            showStatusMessage(section, 'error', 'Por favor, selecione as datas de início e fim.');
-            return null;
+    let cachedFinancialData = null; // Cache para evitar múltiplas chamadas para o mesmo período
+    let lastFetchedPeriod = { inicio: null, fim: null };
+
+    async function fetchAllFinancialData(tabName, dataInicio, dataFim) {
+        // Verifica se já temos os dados em cache para o período
+        if (cachedFinancialData && lastFetchedPeriod.inicio === dataInicio && lastFetchedPeriod.fim === dataFim) {
+            console.log("Usando dados em cache para o período:", dataInicio, "-", dataFim);
+            return cachedFinancialData;
         }
 
-        showStatusMessage(section, 'loading');
-
+        showStatusMessage(tabName, 'loading');
         try {
-            const response = await fetch(`${WORKER_DATA_ENDPOINT}?inicio=${dataInicio}&fim=${dataFim}`);
-            const data = await response.json();
+            const url = `${WORKER_DATA_ENDPOINT}?inicio=${dataInicio}&fim=${dataFim}`;
+            const response = await fetch(url);
 
             if (!response.ok) {
-                throw new Error(data.error || 'Erro desconhecido ao buscar dados.');
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Erro ao buscar dados: ${response.statusText}`);
             }
 
-            showStatusMessage(section, 'none'); // Esconde loading/erro
+            const data = await response.json();
+            cachedFinancialData = data; // Armazena em cache
+            lastFetchedPeriod = { inicio: dataInicio, fim: dataFim }; // Atualiza o período do cache
             return data;
+
         } catch (error) {
-            console.error(`Erro ao carregar dados para ${section}:`, error);
-            showStatusMessage(section, 'error', `Não foi possível carregar os dados. ${error.message}`);
+            console.error(`Erro ao carregar dados para ${tabName}:`, error);
+            showStatusMessage(tabName, 'error', `Não foi possível carregar os dados. ${error.message}`);
+            cachedFinancialData = null; // Limpa o cache em caso de erro
             return null;
         }
     }
 
-    // --- Funções Específicas para Cada Aba ---
-
+    // --- Funções de Fetch e Renderização para cada Aba ---
     async function fetchReportData() {
-        financialReportTableBody.innerHTML = ''; // Limpa a tabela
-        financialReportTableHead.innerHTML = ''; // Limpa o cabeçalho
+        financialReportTableHead.innerHTML = '';
+        financialReportTableBody.innerHTML = '';
 
         const dataInicio = dateInputStartDiario.value;
         const dataFim = dateInputEndDiario.value;
@@ -147,32 +160,25 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Define os cabeçalhos da tabela (pode ser fixo ou dinâmico baseado nos dados)
+        // Definir cabeçalhos da tabela (ajuste conforme os campos do seu `processedPayments`)
         const headers = [
-            "Data Pagamento", "Cliente", "CPF/CNPJ", "Plano", "Valor Plano Ref",
-            "Valor Boleto", "Valor Pago", "Portador", "Endereço", "Cidade", "UF",
-            "Valor SCM", "Valor SCI", "Valor SVA", "Forma Pagamento"
+            "Data Pagamento", "Cliente", "Plano", "Portador", "Valor Boleto",
+            "Valor Pago", "Valor SCM", "Valor SCI", "Valor SVA"
         ];
-        financialReportTableHead.innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        financialReportTableHead.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
 
         data.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.dataPagamento}</td>
                 <td>${item.cliente}</td>
-                <td>${item.cpfcnpj}</td>
                 <td>${item.plano}</td>
-                <td style="text-align: right;">${formatCurrency(item.valorPlanoRef)}</td>
+                <td>${item.portador}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorBoleto)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorPago)}</td>
-                <td>${item.portador}</td>
-                <td>${item.endereco}</td>
-                <td>${item.cidade}</td>
-                <td>${item.uf}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorSCM)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorSCI)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorSVA)}</td>
-                <td>${item.formaPagamento}</td>
             `;
             financialReportTableBody.appendChild(tr);
         });
@@ -190,13 +196,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const allData = await fetchAllFinancialData('dashboard', dataInicio, dataFim);
         if (allData && allData.dashboard) {
             renderDashboard(allData.dashboard);
-        } else if (!allData || allData.dashboard.totalPagamentos === 0) {
+        } else if (!allData || allData.dashboard.daily.length === 0) { // Verifica se há dados diários no dashboard
             showStatusMessage('dashboard', 'no-data');
         }
     }
 
     function renderDashboard(data) {
-        if (!data || data.summary.totalPagamentos === 0) {
+        if (!data || data.daily.length === 0) {
             showStatusMessage('dashboard', 'no-data');
             return;
         }
