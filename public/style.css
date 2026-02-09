@@ -1,32 +1,52 @@
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* --- Variáveis CSS --- */
+:root {
+    --primary-color: #0f172a; /* Azul escuro */
+    --secondary-color: #1e293b; /* Azul mais claro */
+    --text-light: #f8fafc; /* Branco quase puro */
+    --text-dark: #333; /* Cinza escuro */
+    --accent-green: #a7f3d0; /* Verde claro */
+    --accent-blue: #93c5fd; /* Azul claro */
+    --accent-orange: #fdba74; /* Laranja claro */
+    --border-color: #e0e0e0;
+    --bg-light: #f8fafc;
+    --bg-dark: #fff;
+}
+
+/* --- Reset Básico e Estilos Globais --- */
+* {
     margin: 0;
-    padding: 20px;
-    background-color: #f4f7f6;
-    color: #333;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif; /* Use uma fonte moderna */
     line-height: 1.6;
+    color: var(--text-dark);
+    background-color: var(--bg-light);
+    padding: 20px;
 }
 
 .container {
     max-width: 1200px;
     margin: 20px auto;
-    background-color: #fff;
+    background-color: var(--bg-dark);
     padding: 30px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
 h1 {
+    color: var(--primary-color);
     text-align: center;
-    color: #0f172a;
     margin-bottom: 30px;
     font-size: 2.2em;
     font-weight: 700;
 }
 
 h2 {
-    color: #0f172a;
-    border-bottom: 2px solid #e0e0e0;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--border-color);
     padding-bottom: 10px;
     margin-top: 40px;
     margin-bottom: 25px;
@@ -34,7 +54,7 @@ h2 {
 }
 
 h3 {
-    color: #0f172a;
+    color: var(--primary-color);
     margin-top: 30px;
     margin-bottom: 15px;
     font-size: 1.2em;
@@ -45,7 +65,7 @@ h3 {
     display: flex;
     justify-content: center;
     margin-bottom: 30px;
-    border-bottom: 2px solid #e0e0e0;
+    border-bottom: 2px solid var(--border-color);
 }
 
 .tab-button {
@@ -66,14 +86,19 @@ h3 {
 }
 
 .tab-button.active {
-    background-color: #0f172a;
-    color: #f8fafc;
-    border-bottom: 2px solid #0f172a;
+    background-color: var(--primary-color);
+    color: var(--text-light);
+    border-bottom: 2px solid var(--primary-color);
     transform: translateY(2px); /* Pequeno efeito de "levantar" */
 }
 
 .tab-content {
     padding: 20px 0;
+    display: none; /* Esconde todas as abas por padrão */
+}
+
+.tab-content.active {
+    display: block; /* Mostra apenas a aba ativa */
 }
 
 /* --- Controles (Inputs e Botões) --- */
@@ -104,8 +129,8 @@ h3 {
 }
 
 .controls button {
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     border: none;
     padding: 10px 20px;
     border-radius: 5px;
@@ -116,7 +141,7 @@ h3 {
 }
 
 .controls button:hover {
-    background-color: #1e293b;
+    background-color: var(--secondary-color);
 }
 
 /* --- Mensagens de Status --- */
@@ -154,7 +179,7 @@ h3 {
 .table-container {
     overflow-x: auto;
     margin-top: 20px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     border-radius: 6px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
@@ -163,21 +188,21 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin: 0;
-    background-color: #fff;
+    background-color: var(--bg-dark);
 }
 
 table thead th {
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     padding: 12px 15px;
     text-align: left;
     font-weight: 600;
     font-size: 0.95em;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid var(--secondary-color);
 }
 
 table tbody tr:nth-child(even) {
-    background-color: #f8fafc;
+    background-color: var(--bg-light);
 }
 
 table tbody tr:hover {
@@ -187,7 +212,7 @@ table tbody tr:hover {
 table tbody td {
     padding: 10px 15px;
     border-bottom: 1px solid #eee;
-    color: #333;
+    color: var(--text-dark);
     font-size: 0.9em;
 }
 
@@ -235,8 +260,8 @@ table tbody td {
 }
 
 .dashboard-cards .card {
-    background-color: #0f172a;
-    color: #f8fafc;
+    background-color: var(--primary-color);
+    color: var(--text-light);
     padding: 20px;
     border-radius: 8px;
     text-align: center;
@@ -263,7 +288,7 @@ table tbody td {
     background-color: #111827;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    color: #f8fafc;
+    color: var(--text-light);
 }
 
 .transfer-panel-title {
@@ -271,11 +296,11 @@ table tbody td {
     font-weight: 700;
     text-align: center;
     margin-bottom: 20px;
-    color: #a7f3d0; /* Um verde claro para destaque */
+    color: var(--accent-green); /* Um verde claro para destaque */
 }
 
 .transfer-panel-item {
-    background-color: #0f172a;
+    background-color: var(--primary-color);
     padding: 15px;
     border-radius: 6px;
     margin-bottom: 15px;
@@ -294,12 +319,12 @@ table tbody td {
 }
 
 .transfer-panel-scm {
-    color: #93c5fd; /* Azul claro */
+    color: var(--accent-blue); /* Azul claro */
     font-size: 0.95em;
     margin-bottom: 5px;
 }
 
 .transfer-panel-sva {
-    color: #fdba74; /* Laranja claro */
+    color: var(--accent-orange); /* Laranja claro */
     font-size: 0.95em;
 }
