@@ -1,11 +1,11 @@
-// public/script.js (Código completo e corrigido para o Frontend)
+// script.js - Código para o Frontend
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- Configuração da API do Cloudflare Worker ---
     // Substitua esta URL pela URL BASE REAL do seu Cloudflare Worker!
     // Exemplo: 'https://pagamentos.paulo-barrozosf.workers.dev'
-    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev/';
-    const WORKER_DATA_ENDPOINT = WORKER_BASE_URL + 'dados-financeiros-periodo'; // Novo endpoint único
+    const WORKER_BASE_URL = 'https://pagamentos.paulo-barrozosf.workers.dev'; 
+    const WORKER_DATA_ENDPOINT = `${WORKER_BASE_URL}/dados-financeiros-periodo`;
 
     // --- Seletores de Elementos do DOM ---
     // Navegação
@@ -13,14 +13,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabContents = document.querySelectorAll('.tab-content');
 
     // Relatório Detalhado
-    const dateInputStartDiario = document.getElementById('dataInicioDiario');
-    const dateInputEndDiario = document.getElementById('dataFimDiario');
+    const dateInputStartDetalhado = document.getElementById('dataInicioDetalhado');
+    const dateInputEndDetalhado = document.getElementById('dataFimDetalhado');
     const fetchReportButton = document.getElementById('fetchReportButton');
     const financialReportTableHead = document.querySelector('#financialReportTable thead tr');
     const financialReportTableBody = document.querySelector('#financialReportTable tbody');
-    const loadingDiarioDiv = document.getElementById('loading-diario');
-    const errorDiarioDiv = document.getElementById('error-diario');
-    const noDataDiarioDiv = document.getElementById('no-data-diario');
+    const loadingDetalhadoDiv = document.getElementById('loading-detalhado');
+    const errorDetalhadoDiv = document.getElementById('error-detalhado');
+    const noDataDetalhadoDiv = document.getElementById('no-data-detalhado');
 
     // Dashboard
     const dateInputStartDashboard = document.getElementById('dataInicioDashboard');
@@ -38,46 +38,45 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateInputEndTransfer = document.getElementById('dataFimTransfer');
     const fetchTransferButton = document.getElementById('fetchTransferButton');
     const transferTableBody = document.querySelector('#transferTable tbody');
-    const transferPanel = document.querySelector('.transfer-panel');
-    const loadingTransferDiv = document.getElementById('loading-transfer');
-    const errorTransferDiv = document.getElementById('error-transfer');
-    const noDataTransferDiv = document.getElementById('no-data-transfer');
+    const transferPanel = document.getElementById('transferPanel');
+    const loadingTransferenciasDiv = document.getElementById('loading-transferencias');
+    const errorTransferenciasDiv = document.getElementById('error-transferencias');
+    const noDataTransferenciasDiv = document.getElementById('no-data-transferencias');
 
     // --- Funções Auxiliares ---
+
     function formatCurrency(value) {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
     }
 
-    function showStatusMessage(tab, type, message = '') {
-        const loadingDiv = document.getElementById(`loading-${tab}`);
-        const errorDiv = document.getElementById(`error-${tab}`);
-        const noDataDiv = document.getElementById(`no-data-${tab}`);
+    function showStatusMessage(tabPrefix, type, message = '') {
+        const loadingDiv = document.getElementById(`loading-${tabPrefix}`);
+        const errorDiv = document.getElementById(`error-${tabPrefix}`);
+        const noDataDiv = document.getElementById(`no-data-${tabPrefix}`);
 
-        // Esconde todas as mensagens primeiro
-        if (loadingDiv) loadingDiv.style.display = 'none';
-        if (errorDiv) errorDiv.style.display = 'none';
-        if (noDataDiv) noDataDiv.style.display = 'none';
+        loadingDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+        noDataDiv.style.display = 'none';
 
-        // Mostra a mensagem específica
-        if (type === 'loading' && loadingDiv) {
+        if (type === 'loading') {
             loadingDiv.style.display = 'block';
-        } else if (type === 'error' && errorDiv) {
-            errorDiv.textContent = message;
+        } else if (type === 'error') {
+            errorDiv.textContent = `Erro: ${message}`;
             errorDiv.style.display = 'block';
-        } else if (type === 'no-data' && noDataDiv) {
+        } else if (type === 'no-data') {
             noDataDiv.style.display = 'block';
         }
     }
 
     function setInitialDates(startDateInput, endDateInput) {
         const today = new Date();
-        const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
         endDateInput.valueAsDate = today;
-        startDateInput.valueAsDate = firstDayOfCurrentMonth;
+        startDateInput.valueAsDate = firstDayOfMonth;
     }
 
-    // --- Navegação entre Abas ---
+    // --- Lógica de Navegação das Abas ---
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
             const targetTab = button.dataset.tab;
@@ -93,10 +92,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Dispara o fetch de dados para a aba ativa
-            if (targetTab === 'relatorio-diario') {
+            // Carrega os dados da aba ativa automaticamente
+            if (targetTab === 'relatorio-detalhado') {
                 fetchReportData();
-            } else if (targetTab === 'dashboard-mensal') {
+            } else if (targetTab === 'dashboard') {
                 fetchDashboardData();
             } else if (targetTab === 'transferencias') {
                 fetchTransferData();
@@ -104,85 +103,91 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- Função Centralizada para Buscar Todos os Dados Financeiros ---
-    let cachedFinancialData = null; // Cache para evitar múltiplas chamadas para o mesmo período
-    let lastFetchedPeriod = { inicio: null, fim: null };
+    // --- Função Centralizada para Buscar Dados do Worker ---
+    async function fetchAllFinancialData(tabPrefix, dataInicio, dataFim) {
+        showStatusMessage(tabPrefix, 'loading');
 
-    async function fetchAllFinancialData(tabName, dataInicio, dataFim) {
-        // Verifica se já temos os dados em cache para o período
-        if (cachedFinancialData && lastFetchedPeriod.inicio === dataInicio && lastFetchedPeriod.fim === dataFim) {
-            console.log("Usando dados em cache para o período:", dataInicio, "-", dataFim);
-            return cachedFinancialData;
+        if (!dataInicio || !dataFim) {
+            showStatusMessage(tabPrefix, 'error', 'Por favor, selecione as datas de início e fim.');
+            return null;
         }
 
-        showStatusMessage(tabName, 'loading');
         try {
-            const url = `${WORKER_DATA_ENDPOINT}?inicio=${dataInicio}&fim=${dataFim}`;
-            const response = await fetch(url);
+            const url = new URL(WORKER_DATA_ENDPOINT);
+            url.searchParams.append('data_inicio', dataInicio);
+            url.searchParams.append('data_fim', dataFim);
+
+            const response = await fetch(url.toString());
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || `Erro ao buscar dados: ${response.statusText}`);
+                throw new Error(errorData.details || `Erro HTTP: ${response.status}`);
             }
 
             const data = await response.json();
-            cachedFinancialData = data; // Armazena em cache
-            lastFetchedPeriod = { inicio: dataInicio, fim: dataFim }; // Atualiza o período do cache
+            showStatusMessage(tabPrefix, 'none'); // Esconde mensagens de status
             return data;
 
         } catch (error) {
-            console.error(`Erro ao carregar dados para ${tabName}:`, error);
-            showStatusMessage(tabName, 'error', `Não foi possível carregar os dados. ${error.message}`);
-            cachedFinancialData = null; // Limpa o cache em caso de erro
+            console.error(`Erro ao carregar dados para ${tabPrefix}:`, error);
+            showStatusMessage(tabPrefix, 'error', error.message);
             return null;
         }
     }
 
-    // --- Funções de Fetch e Renderização para cada Aba ---
+    // --- Funções para Renderizar Dados em Cada Aba ---
+
     async function fetchReportData() {
         financialReportTableHead.innerHTML = '';
         financialReportTableBody.innerHTML = '';
 
-        const dataInicio = dateInputStartDiario.value;
-        const dataFim = dateInputEndDiario.value;
+        const dataInicio = dateInputStartDetalhado.value;
+        const dataFim = dateInputEndDetalhado.value;
 
-        const allData = await fetchAllFinancialData('diario', dataInicio, dataFim);
+        const allData = await fetchAllFinancialData('detalhado', dataInicio, dataFim);
         if (allData && allData.pagamentosDetalhes) {
-            renderReportTable(allData.pagamentosDetalhes);
+            renderDetalhado(allData.pagamentosDetalhes);
         } else if (!allData || allData.pagamentosDetalhes.length === 0) {
-            showStatusMessage('diario', 'no-data');
+            showStatusMessage('detalhado', 'no-data');
         }
     }
 
-    function renderReportTable(data) {
+    function renderDetalhado(data) {
         if (!data || data.length === 0) {
-            showStatusMessage('diario', 'no-data');
+            showStatusMessage('detalhado', 'no-data');
             return;
         }
 
-        // Definir cabeçalhos da tabela (ajuste conforme os campos do seu `processedPayments`)
+        // Cabeçalhos da tabela (ajustados para os campos do Worker)
         const headers = [
-            "Data Pagamento", "Cliente", "Plano", "Portador", "Valor Boleto",
-            "Valor Pago", "Valor SCM", "Valor SCI", "Valor SVA"
+            "Data Pagamento", "Cliente", "Contrato ID", "Plano", "Portador",
+            "Forma Pagamento", "Valor Boleto", "Valor Pago",
+            "Valor SCM (R$)", "Valor SCI (R$)", "Valor SVA (R$)",
+            "Título", "Chave Única"
         ];
         financialReportTableHead.innerHTML = headers.map(h => `<th>${h}</th>`).join('');
 
+        // Preencher corpo da tabela
         data.forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${item.dataPagamento}</td>
                 <td>${item.cliente}</td>
+                <td>${item.contratoID}</td>
                 <td>${item.plano}</td>
                 <td>${item.portador}</td>
+                <td>${item.formaPagamento}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorBoleto)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorPago)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorSCM)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorSCI)}</td>
                 <td style="text-align: right;">${formatCurrency(item.valorSVA)}</td>
+                <td>${item.titulo}</td>
+                <td>${item.chaveUnica}</td>
             `;
             financialReportTableBody.appendChild(tr);
         });
-        showStatusMessage('diario', 'none');
+        showStatusMessage('detalhado', 'none');
     }
 
     async function fetchDashboardData() {
@@ -196,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const allData = await fetchAllFinancialData('dashboard', dataInicio, dataFim);
         if (allData && allData.dashboard) {
             renderDashboard(allData.dashboard);
-        } else if (!allData || allData.dashboard.daily.length === 0) { // Verifica se há dados diários no dashboard
+        } else if (!allData || allData.dashboard.daily.length === 0) { // Verifica se há dados diários
             showStatusMessage('dashboard', 'no-data');
         }
     }
@@ -260,17 +265,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataInicio = dateInputStartTransfer.value;
         const dataFim = dateInputEndTransfer.value;
 
-        const allData = await fetchAllFinancialData('transfer', dataInicio, dataFim);
+        const allData = await fetchAllFinancialData('transferencias', dataInicio, dataFim);
         if (allData && allData.transferencias) {
             renderTransferencias(allData.transferencias);
         } else if (!allData || allData.transferencias.transferLines.length === 0) {
-            showStatusMessage('transfer', 'no-data');
+            showStatusMessage('transferencias', 'no-data');
         }
     }
 
     function renderTransferencias(data) {
         if (!data || data.transferLines.length === 0) {
-            showStatusMessage('transfer', 'no-data');
+            showStatusMessage('transferencias', 'no-data');
             return;
         }
 
@@ -282,12 +287,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${row.totalPagamentos}</td>
                 <td style="text-align: right;">${formatCurrency(row.valorTotalBoleto)}</td>
                 <td style="text-align: right;">${formatCurrency(row.totalRecebido)}</td>
-                <td style="text-align: right; background-color: #e8f1ff;">${formatCurrency(row.totalSCM_Total)}</td>
-                <td style="text-align: right; background-color: #e8f1ff;">${formatCurrency(row.scmToSci)}</td>
-                <td style="text-align: right; background-color: #e8f1ff;">${formatCurrency(row.scmToSva)}</td>
-                <td style="text-align: right; background-color: #fff3e0;">${formatCurrency(row.totalSVA_Total)}</td>
-                <td style="text-align: right; background-color: #fff3e0;">${formatCurrency(row.svaToScm)}</td>
-                <td style="text-align: right; background-color: #fff3e0;">${formatCurrency(row.svaToSci)}</td>
+                <td style="text-align: right;">${formatCurrency(row.totalSCM_Total)}</td>
+                <td style="text-align: right;">${formatCurrency(row.scmToSci)}</td>
+                <td style="text-align: right;">${formatCurrency(row.scmToSva)}</td>
+                <td style="text-align: right;">${formatCurrency(row.totalSVA_Total)}</td>
+                <td style="text-align: right;">${formatCurrency(row.svaToScm)}</td>
+                <td style="text-align: right;">${formatCurrency(row.svaToSci)}</td>
             `;
             transferTableBody.appendChild(tr);
         });
@@ -305,26 +310,27 @@ document.addEventListener('DOMContentLoaded', () => {
             transferPanel.appendChild(panelItem);
         });
 
-        showStatusMessage('transfer', 'none');
+        showStatusMessage('transferencias', 'none');
     }
 
     // --- Inicialização ---
-    setInitialDates(dateInputStartDiario, dateInputEndDiario);
+    // Define as datas iniciais para todos os inputs de data
+    setInitialDates(dateInputStartDetalhado, dateInputEndDetalhado);
     setInitialDates(dateInputStartDashboard, dateInputEndDashboard);
     setInitialDates(dateInputStartTransfer, dateInputEndTransfer);
 
-    // Event Listeners
+    // Event Listeners para os botões de carregar
     fetchReportButton.addEventListener('click', fetchReportData);
     fetchDashboardButton.addEventListener('click', fetchDashboardData);
     fetchTransferButton.addEventListener('click', fetchTransferData);
 
-    // Carrega a primeira aba ativa ao iniciar
+    // Carrega os dados da primeira aba ativa ao iniciar
     const initialTab = document.querySelector('.tab-button.active');
     if (initialTab) {
         const targetTab = initialTab.dataset.tab;
-        if (targetTab === 'relatorio-diario') {
+        if (targetTab === 'relatorio-detalhado') {
             fetchReportData();
-        } else if (targetTab === 'dashboard-mensal') {
+        } else if (targetTab === 'dashboard') {
             fetchDashboardData();
         } else if (targetTab === 'transferencias') {
             fetchTransferData();
