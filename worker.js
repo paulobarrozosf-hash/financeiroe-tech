@@ -1,6 +1,6 @@
 // worker.js (Código completo e corrigido para o Cloudflare Worker)
 
-const SGP_BASE_URL = "http://45.71.42.9:8000/api/ura/clientes/";
+const SGP_BASE_URL = "https://sgp.etechinformaticatelecom.com.br/api/ura/clientes/";
 const SGP_APP_NAME = "webchat"; // Substitua pelo seu appName real
 const SGP_TOKEN = "3c39b482-5a6f-4319-abba-f58d2b2218d8"; // Substitua pelo seu token real
 
@@ -59,9 +59,30 @@ const planosTabela = {
   "FTTH_200MB LINHA DEDICADA": { valor:150,  scm:1.0, sci:0.0, sva:0.0 },
   "FTTH_300MB CORPORATIVO":    { valor:150,  scm:1.0, sci:0.0, sva:0.0 },
   "FTTH_500MB EMPRESARIAL":    { valor:150,  scm:1.0, sci:0.0, sva:0.0 },
-  "FTTH_700MB RESIDENCIAL":    { valor:150,  scm:0.156, sci:0.6213, sva:0.2227 },
-  "FTTH_200MB CORPORATIVO ESPECIAL": { valor:180, scm:1.0, sci:0.0, sva:0.0 },
-  "FTTH_50MB LINHA DEDICADA":  { valor:180,  scm:1.0, sci:0.0, sva:0.0 },
+  "FTTH_600MB RESIDENCIAL":    { valor:150,  scm:0.156, sci:0.6189, sva:0.2251 },
+  "HFC_150MB RESIDENCIAL":     { valor:150,  scm:0.156, sci:0.6189, sva:0.2251 },
+  "FTTH_1GB RESIDENCIAL":      { valor:200,  scm:0.117, sci:0.729, sva:0.154 },
+  "HFC_200MB RESIDENCIAL":     { valor:200,  scm:0.117, sci:0.729, sva:0.154 },
+  "FTTH_2GB RESIDENCIAL":      { valor:300,  scm:0.078, sci:0.838, sva:0.084 },
+  "HFC_300MB RESIDENCIAL":     { valor:300,  scm:0.078, sci:0.838, sva:0.084 },
+  "FTTH_3GB RESIDENCIAL":      { valor:400,  scm:0.0585, sci:0.889, sva:0.0525 },
+  "HFC_400MB RESIDENCIAL":     { valor:400,  scm:0.0585, sci:0.889, sva:0.0525 },
+  "FTTH_5GB RESIDENCIAL":      { valor:500,  scm:0.0468, sci:0.919, sva:0.0342 },
+  "HFC_500MB RESIDENCIAL":     { valor:500,  scm:0.0468, sci:0.919, sva:0.0342 },
+  "FTTH_10GB RESIDENCIAL":     { valor:1000, scm:0.0234, sci:0.959, sva:0.0176 },
+  "HFC_1GB RESIDENCIAL":       { valor:1000, scm:0.0234, sci:0.959, sva:0.0176 },
+  "FTTH_20GB RESIDENCIAL":     { valor:2000, scm:0.0117, sci:0.979, sva:0.0093 },
+  "HFC_2GB RESIDENCIAL":       { valor:2000, scm:0.0117, sci:0.979, sva:0.0093 },
+  "FTTH_50GB RESIDENCIAL":     { valor:5000, scm:0.00468, sci:0.991, sva:0.00432 },
+  "HFC_5GB RESIDENCIAL":       { valor:5000, scm:0.00468, sci:0.991, sva:0.00432 },
+  "FTTH_100GB RESIDENCIAL":    { valor:10000, scm:0.00234, sci:0.995, sva:0.00266 },
+  "HFC_10GB RESIDENCIAL":      { valor:10000, scm:0.00234, sci:0.995, sva:0.00266 },
+  "FTTH_200GB RESIDENCIAL":    { valor:20000, scm:0.00117, sci:0.997, sva:0.00183 },
+  "HFC_20GB RESIDENCIAL":      { valor:20000, scm:0.00117, sci:0.997, sva:0.00183 },
+  "FTTH_500GB RESIDENCIAL":    { valor:50000, scm:0.000468, sci:0.999, sva:0.000532 },
+  "HFC_50GB RESIDENCIAL":      { valor:50000, scm:0.000468, sci:0.999, sva:0.000532 },
+  "FTTH_1TB RESIDENCIAL":      { valor:100000, scm:0.000234, sci:0.999, sva:0.000766 },
+  "HFC_100GB RESIDENCIAL":     { valor:100000, scm:0.000234, sci:0.999, sva:0.000766 }
 };
 
 // --- Funções Auxiliares (Copie do seu App Script) ---
@@ -73,40 +94,30 @@ function round2_(n) {
   return Math.round(n * 100) / 100;
 }
 
-function extrairDataPagamentoISO_(raw, tz) {
-  if (!raw) return null;
-  let date;
-  if (raw instanceof Date) {
-    date = raw;
-  } else if (typeof raw === 'string') {
-    // Tenta YYYY-MM-DD
-    if (/
-^
-\d{4}-\d{2}-\d{2}
-$
-/.test(raw)) {
-      date = new Date(raw + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário
-    }
-    // Tenta DD/MM/YYYY
-    else if (/
-^
-\d{2}\/\d{2}\/\d{4}
-$
-/.test(raw)) {
-      const parts = raw.split('/');
-      date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`);
-    }
-    // Tenta string com hora (ex: "2024-01-15 10:30:00")
-    else {
-      date = new Date(raw);
+function extrairDataPagamentoISO_(rawDate, tz) {
+  if (!rawDate) return null;
+
+  let dateObj;
+  if (rawDate instanceof Date) {
+    dateObj = rawDate;
+  } else if (typeof rawDate === 'string') {
+    // Tenta parsear como YYYY-MM-DD
+    const isoMatch = rawDate.match(/^(\d{4}-\d{2}-\d{2})/);
+        if (isoMatch) {
+      dateObj = new Date(isoMatch[1] + 'T00:00:00'); // Garante fuso horário neutro para ISO
+    } else {
+      // Tenta parsear como DD/MM/YYYY ou outras strings comuns
+      dateObj = new Date(rawDate);
     }
   }
 
-  if (isNaN(date.getTime())) return null;
+  if (isNaN(dateObj.getTime())) {
+    return null;
+  }
 
   // Formata para ISO YYYY-MM-DD no fuso horário especificado
-  return new Date(date.toLocaleString("en-US", { timeZone: tz }))
-         .toISOString().substring(0, 10);
+  return new Date(dateObj.toLocaleString("en-US", { timeZone: tz }))
+    .toISOString().substring(0, 10);
 }
 
 function empresaFromPortador_(portador) {
@@ -117,177 +128,138 @@ function empresaFromPortador_(portador) {
 }
 
 function extrairIdsTitulo_(titulo) {
-  const tituloId = (titulo.id || "").toString().trim();
-  const nossoNumero = (titulo.nossoNumero || "").toString().trim();
-  const numeroDocumento = (titulo.numeroDocumento || "").toString().trim();
-
-  // Prioridade para chave única
-  const uniq = tituloId || nossoNumero || numeroDocumento;
-  return { tituloId, nossoNumero, numeroDocumento, uniq };
+  const s = (titulo || "").toString();
+  const match = s.match(/(\d+)\/(\d+)\/(\d+)/); // TituloID/NossoNumero/NumeroDocumento
+  if (match) {
+    return {
+      tituloId: match[1],
+      nossoNumero: match[2],
+      numeroDocumento: match[3]
+    };
+  }
+  return { tituloId: "", nossoNumero: "", numeroDocumento: "" };
 }
 
-function buscarClienteEspecial(nomeCliente, contratoId) {
-  return tabelaEspecialClientes.find(c =>
-    normalize_(c.nome) === normalize_(nomeCliente) && c.contratoId == contratoId
-  );
-}
+function resolvePlanoInfo_(planoDesc, valorRecebido, valorBoleto, planosTabela) {
+  const def = { valor: 0, scm: 0, sci: 0, sva: 0 };
+  if (!planoDesc) return def;
 
-function resolvePlanoInfo_(planoDesc, valorRecebido, valorBoleto) {
   const p = normalize_(planoDesc);
-  let info = planosTabela[p];
+  const alvo = Math.round(valorRecebido > 0 ? valorRecebido : valorBoleto);
 
-  // Se não encontrou pelo nome exato, tenta casar pelo valor
-  if (!info) {
-    for (const key in planosTabela) {
-      if (planosTabela[key].valor === valorBoleto || planosTabela[key].valor === valorRecebido) {
-        info = planosTabela[key];
-        break;
-      }
-    }
+  // Tenta match exato
+  if (planosTabela[planoDesc]) return planosTabela[planoDesc];
+
+  // Tenta match parcial (ex: "FTTH_300MB RESIDENCIAL" vs "FTTH_300MB RESIDENCIAL (100)")
+  const base = p.split('(')[0].trim();
+  const candidates = Object.keys(planosTabela)
+    .filter(k => k === base || k.startsWith(base + " ("));
+
+  if (candidates.length === 1) return planosTabela[candidates[0]];
+
+  // se houver vários, tenta pelo valor
+  for (const k of candidates) {
+    const info = planosTabela[k];
+    if (Math.round(Number(info.valor||0)) === alvo) return info;
   }
 
-  // Fallback se não encontrar
-  if (!info) {
-    return { valor: valorBoleto, scm: 0.234, sci: 0.432, sva: 0.334 }; // Padrão FTTH_300MB RESIDENCIAL
-  }
-  return info;
+  // fallback: se existir base direto, usa
+  if (planosTabela[base]) return planosTabela[base];
+
+  return def;
 }
 
-// --- Função Principal de Busca e Processamento de Pagamentos (do seu App Script) ---
-async function fetchAndProcessPayments(dataInicio, dataFim, appName, token) {
-  const SGP_API_URL = SGP_BASE_URL;
-  let offset = 0;
-  const limit = 100;
-  let continuarConsulta = true;
-  let todosRegistros = [];
-  const seenKeys = new Set();
+function indexByHeader_(header) {
+  const idx = {};
+  header.forEach((h, i) => { idx[h] = i; });
+  return idx;
+}
 
-  while (continuarConsulta) {
-    const payload = {
-      app: appName,
-      token: token,
-      offset: offset,
-      limit: limit,
-      data_pagamento_inicio: dataInicio,
-      data_pagamento_fim: dataFim,
-      omitir_contratos: false,
-      omitir_titulos: false,
-      exibir_observacao_servicos: true
-    };
+function rowToReg_(r, idx, dataIso) {
+  const ids = extrairIdsTitulo_(r[idx["Título"]]);
+  const planoInfo = resolvePlanoInfo_(
+    r[idx["Plano"]],
+    Number(r[idx["Valor Pago"]] || 0),
+    Number(r[idx["Valor Boleto"]] || 0),
+    planosTabela
+  );
 
-    const options = {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    };
+  const valorPago = Number(r[idx["Valor Pago"]] || 0);
+  const valorBoleto = Number(r[idx["Valor Boleto"]] || 0);
+  const valorRecebido = valorPago > 0 ? valorPago : valorBoleto;
 
-    const response = await fetch(SGP_API_URL, options);
+  return {
+    dataPagamento: dataIso,
+    titulo: r[idx["Título"]],
+    tituloId: ids.tituloId,
+    nossoNumero: ids.nossoNumero,
+    numeroDocumento: ids.numeroDocumento,
+    cliente: r[idx["Cliente"]],
+    contratoId: r[idx["ContratoID"]],
+    plano: r[idx["Plano"]],
+    formaPagamento: r[idx["Forma Pagamento"]],
+    portador: r[idx["Portador"]],
+    valorBoleto: valorBoleto,
+    valorPago: valorPago,
+    valorRecebido: valorRecebido,
+    valorSCM: round2_(valorRecebido * planoInfo.scm),
+    valorSCI: round2_(valorRecebido * planoInfo.sci),
+    valorSVA: round2_(valorRecebido * planoInfo.sva),
+    chaveUnica: `${ids.tituloId}|${ids.nossoNumero}|${ids.numeroDocumento}|${dataIso}|${valorPago.toFixed(2)}`
+  };
+}
+
+// --- Funções de Fetch e Processamento da API SGP ---
+async function fetchAndProcessPayments(dataInicio, dataFim) {
+  const url = `${SGP_BASE_URL}?data_inicio=${dataInicio}&data_fim=${dataFim}&app_name=${SGP_APP_NAME}&token=${SGP_TOKEN}`;
+
+  try {
+    const response = await fetch(url);
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`API SGP retornou erro ${response.status}: ${errorText}`);
-      throw new Error(`Erro na API SGP: ${response.status} - ${errorText}`);
+      console.error(`Erro na API SGP: ${response.status} - ${errorText}`);
+      throw new Error(`Erro ao buscar dados da API SGP: ${response.statusText}`);
     }
+    const rawData = await response.json();
 
-    const dados = await response.json();
+    const header = [
+      "Título", "Cliente", "ContratoID", "Plano", "Forma Pagamento",
+      "Portador", "Valor Boleto", "Valor Pago", "Data Pagamento"
+    ];
+    const idx = indexByHeader_(header);
 
-    if (!dados.clientes || dados.clientes.length === 0) {
-      continuarConsulta = false;
-      break;
-    }
+    const seen = new Set();
+    const processedPayments = [];
 
-    dados.clientes.forEach(cliente => {
-      const nome = cliente.nome || "";
-      const cpfcnpj = cliente.cpfcnpj || "";
-      const endereco = (cliente.endereco && `${cliente.endereco.logradouro || ""} ${cliente.endereco.numero || ""}`.trim()) || "";
-      const cidade = cliente.endereco?.cidade || "";
-      const uf = cliente.endereco?.uf || "";
+    rawData.forEach(r => {
+      const dataIso = extrairDataPagamentoISO_(r[idx["Data Pagamento"]], TZ);
+      if (!dataIso) return; // Ignora registros sem data válida
 
-      (cliente.titulos || []).forEach(titulo => {
-        const dataPgRaw = titulo.dataPagamento || titulo.dataPagamentoFormated || titulo.data_pagamento || "";
-        const portador = titulo.portador || titulo.portador_nome || titulo.portador_banco || "";
-        const formaPagamento = titulo.formaPagamento || titulo.forma_pagamento || "Boleto";
+      const reg = rowToReg_(r, idx, dataIso);
 
-        const dataIso = extrairDataPagamentoISO_(dataPgRaw, TZ);
-        if (!dataIso || dataIso < dataInicio || dataIso > dataFim) return;
+      // Deduplicação forte usando a chave única
+      if (seen.has(reg.chaveUnica)) return;
+      seen.add(reg.chaveUnica);
 
-        const empresa = empresaFromPortador_(portador);
-        if (!empresa) return;
-
-        const contratoId = (titulo.contrato || titulo.contratoId || titulo.clientecontrato_id || "").toString().trim();
-        if (!contratoId) return;
-
-        const contratoObj = cliente.contratos?.find(c => c.contrato == contratoId || c.id == contratoId) || null;
-        const planoDescRaw = contratoObj?.servicos?.[0]?.plano?.descricao || "";
-        const planoDesc = (planoDescRaw || "").toString().trim();
-
-        let valorBoleto = round2_(titulo.valor);
-        let valorPago = round2_(titulo.valorPago);
-        const valorRecebidoFinal = valorPago > 0 ? valorPago : valorBoleto;
-
-        const ids = extrairIdsTitulo_(titulo);
-        const clienteEspecial = buscarClienteEspecial(nome, contratoId);
-
-        let valorSCM = 0, valorSCI = 0, valorSVA = 0, valorPlanoRef = valorBoleto;
-
-        if (clienteEspecial && clienteEspecial.contratoId == contratoId) {
-          const pct = tabelaTipos[clienteEspecial.tipo];
-          if (pct) {
-            valorBoleto = clienteEspecial.valorBoleto;
-            valorSCM = round2_(valorBoleto * pct.scm);
-            valorSCI = round2_(valorBoleto * pct.sci);
-            valorSVA = round2_(valorBoleto * pct.sva);
-            valorPlanoRef = valorBoleto;
-          }
-        } else {
-          const planoInfo = resolvePlanoInfo_(planoDesc, valorRecebidoFinal, valorBoleto);
-          valorSCM = round2_(valorBoleto * planoInfo.scm);
-          valorSCI = round2_(valorBoleto * planoInfo.sci);
-          valorSVA = round2_(valorBoleto * planoInfo.sva);
-          valorPlanoRef = planoInfo.valor;
-        }
-
-        let chaveUnica = "";
-        if (ids.uniq) {
-          chaveUnica = [contratoId, dataIso, ids.uniq].join("|");
-        } else {
-          chaveUnica = [
-            contratoId,
-            dataIso,
-            valorRecebidoFinal.toFixed(2),
-            normalize_(portador),
-            planoDesc,
-            formaPagamento
-          ].join("|");
-        }
-
-        if (seenKeys.has(chaveUnica)) return;
-        seenKeys.add(chaveUnica);
-
-        todosRegistros.push({
-          contratoId, cliente: nome, cpfcnpj, plano: planoDesc, valorPlanoRef,
-          valorBoleto, valorPago: valorRecebidoFinal, dataPagamento: dataIso,
-          portador, endereco, cidade, uf, valorSCM, valorSCI, valorSVA,
-          formaPagamento, tituloId: ids.tituloId, nossoNumero: ids.nossoNumero,
-          numeroDocumento: ids.numeroDocumento, chaveUnica
-        });
-      });
+      processedPayments.push(reg);
     });
-    offset += limit;
-    // await new Promise(resolve => setTimeout(resolve, 100)); // Pequeno delay, se necessário
+
+    return processedPayments;
+
+  } catch (error) {
+    console.error("Erro ao buscar ou processar pagamentos:", error);
+    throw error;
   }
-  return todosRegistros;
 }
 
-// --- Funções de Agregação de Dados (Dashboard e Transferências) ---
-// Estas funções são chamadas INTERNAMENTE pelo Worker após fetchAndProcessPayments
-
+// --- Funções de Agregação (Dashboard e Transferências) ---
 function aggregateDashboardData(payments, startIso, endIso) {
   const seen = new Set();
   const rows = [];
 
   payments.forEach(r => {
-    const data = r.dataPagamento; // Já está em ISO
-    if (!data || data < startIso || data > endIso) return;
+    // Filtra por período aqui, se a busca inicial trouxe mais dados
+    if (!r.dataPagamento || r.dataPagamento < startIso || r.dataPagamento > endIso) return;
 
     const chave = r.chaveUnica;
     if (seen.has(chave)) return;
@@ -303,7 +275,7 @@ function aggregateDashboardData(payments, startIso, endIso) {
   rows.forEach(r => {
     const data = r.dataPagamento;
     const plano = (r.plano || "").trim() || "SEM_PLANO";
-    const recebido = r.valorPago; // Já é o valor final
+    const recebido = r.valorRecebido;
 
     totalRecebido += recebido;
     totalPagamentos++;
@@ -348,8 +320,8 @@ function aggregateTransferData(payments, startIso, endIso) {
   const rows = [];
 
   payments.forEach(r => {
-    const data = r.dataPagamento;
-    if (!data || data < startIso || data > endIso) return;
+    // Filtra por período aqui, se a busca inicial trouxe mais dados
+    if (!r.dataPagamento || r.dataPagamento < startIso || r.dataPagamento > endIso) return;
 
     const chave = r.chaveUnica;
     if (seen.has(chave)) return;
@@ -437,18 +409,17 @@ addEventListener('fetch', event => {
 async function handleRequest(request) {
   const url = new URL(request.url);
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Permite requisições de qualquer origem
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*', // Permite qualquer origem para desenvolvimento
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Content-Type': 'application/json;charset=UTF-8',
   };
 
-  // Responde a requisições OPTIONS (preflight CORS)
+  // Lida com requisições OPTIONS (preflight CORS)
   if (request.method === 'OPTIONS') {
     return new Response(null, { headers });
   }
 
-  // Novo e único endpoint para buscar e processar todos os dados financeiros
   if (url.pathname === '/dados-financeiros-periodo') {
     const dataInicio = url.searchParams.get('inicio');
     const dataFim = url.searchParams.get('fim');
@@ -458,28 +429,28 @@ async function handleRequest(request) {
     }
 
     try {
-      // 1. Busca e processa todos os pagamentos da API SGP para o período
-      const allPayments = await fetchAndProcessPayments(dataInicio, dataFim, SGP_APP_NAME, SGP_TOKEN);
+      // 1. Busca e processa os pagamentos brutos da API SGP
+      const processedPayments = await fetchAndProcessPayments(dataInicio, dataFim);
 
       // 2. Agrega os dados para o Dashboard
-      const dashboardData = aggregateDashboardData(allPayments, dataInicio, dataFim);
+      const dashboardData = aggregateDashboardData(processedPayments, dataInicio, dataFim);
 
       // 3. Agrega os dados para as Transferências
-      const transferData = aggregateTransferData(allPayments, dataInicio, dataFim);
+      const transferData = aggregateTransferData(processedPayments, dataInicio, dataFim);
 
-      // 4. Retorna um objeto JSON contendo todos os tipos de dados
+      // 4. Retorna todos os dados em uma única resposta
       return new Response(JSON.stringify({
-        pagamentosDetalhes: allPayments, // Dados brutos/detalhados
+        pagamentosDetalhes: processedPayments,
         dashboard: dashboardData,
         transferencias: transferData
       }), { headers });
 
     } catch (error) {
-      console.error("Erro no Worker:", error);
-      return new Response(JSON.stringify({ error: error.message || "Erro interno do servidor." }), { status: 500, headers });
+      console.error("Erro no Worker ao processar dados financeiros:", error);
+      return new Response(JSON.stringify({ error: `Erro interno do servidor: ${error.message}` }), { status: 500, headers });
     }
   }
 
-  // Fallback para "Hello World" ou 404 se nenhum endpoint for correspondido
-  return new Response(JSON.stringify({ message: "Endpoint não encontrado ou método não permitido." }), { status: 404, headers });
+  // Resposta padrão para rotas não encontradas
+  return new Response(JSON.stringify({ message: 'Endpoint não encontrado. Tente /dados-financeiros-periodo' }), { status: 404, headers });
 }
