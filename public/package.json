@@ -1,0 +1,10 @@
+    {
+      "name": "etech-finance-frontend",
+      "version": "1.0.0",
+      "description": "Frontend estático para relatórios financeiros da Etech",
+      "scripts": {
+        "start": "echo 'Este é um site estático, abra index.html no navegador ou use um servidor web simples.'"
+      },
+      "author": "Paulo",
+      "license": "MIT"
+    }
